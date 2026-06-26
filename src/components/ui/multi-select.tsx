@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, Check } from "lucide-react";
+import { ChevronDown, Check, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { fuzzyIncludes } from "@/lib/text";
 
 interface Props {
   label: string;
@@ -24,10 +25,14 @@ export function MultiSelect({
   className,
 }: Props) {
   const [open, setOpen] = useState(false);
+  const [filter, setFilter] = useState("");
   const ref = useRef<HTMLDivElement>(null);
+  const filterRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!open) return;
+    setFilter("");
+    filterRef.current?.focus();
     const onClick = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) {
         setOpen(false);
@@ -41,6 +46,10 @@ export function MultiSelect({
       window.removeEventListener("keydown", onKey);
     };
   }, [open]);
+
+  const filteredOptions = filter.trim()
+    ? options.filter((opt) => fuzzyIncludes(opt, filter))
+    : options;
 
   function toggle(option: string) {
     onChange(
@@ -72,11 +81,22 @@ export function MultiSelect({
       </button>
 
       {open && (
-        <div className="absolute z-40 mt-1 max-h-64 w-56 overflow-y-auto rounded-md border border-border bg-popover p-1 shadow-lg">
-          {options.length === 0 ? (
+        <div className="absolute z-40 mt-1 w-56 rounded-md border border-border bg-popover p-1 shadow-lg">
+          <div className="relative mb-1">
+            <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <input
+              ref={filterRef}
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              placeholder={label}
+              className="h-8 w-full rounded-sm border border-input bg-background pl-7 pr-2 text-sm outline-none focus:border-primary"
+            />
+          </div>
+          <div className="max-h-56 overflow-y-auto">
+          {filteredOptions.length === 0 ? (
             <p className="px-2 py-2 text-sm text-muted-foreground">—</p>
           ) : (
-            options.map((opt) => {
+            filteredOptions.map((opt) => {
               const checked = selected.includes(opt);
               return (
                 <button
@@ -100,6 +120,7 @@ export function MultiSelect({
               );
             })
           )}
+          </div>
           {selected.length > 0 && (
             <button
               type="button"

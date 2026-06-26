@@ -1,6 +1,7 @@
 import Database from "@tauri-apps/plugin-sql";
 import { cartTotal, lineSubtotal, stockDeducted } from "@/lib/calc";
 import { countStock, type StockCounts } from "@/lib/stock";
+import { fuzzyIncludes } from "@/lib/text";
 import type {
   Product,
   ProductInput,
@@ -36,17 +37,16 @@ export async function getDb(): Promise<Database> {
 
 export async function listProducts(search?: string): Promise<Product[]> {
   const db = await getDb();
-  if (search && search.trim()) {
-    const q = `%${search.trim()}%`;
-    return db.select<Product[]>(
-      `SELECT * FROM products
-       WHERE name LIKE $1 OR barcode LIKE $1 OR category LIKE $1
-       ORDER BY name COLLATE NOCASE`,
-      [q]
-    );
-  }
-  return db.select<Product[]>(
+  const all = await db.select<Product[]>(
     "SELECT * FROM products ORDER BY name COLLATE NOCASE"
+  );
+  if (!search || !search.trim()) return all;
+  const term = search.trim();
+  return all.filter(
+    (p) =>
+      fuzzyIncludes(p.name, term) ||
+      fuzzyIncludes(p.barcode, term) ||
+      fuzzyIncludes(p.category, term)
   );
 }
 
@@ -90,14 +90,26 @@ export async function searchProductsWithUnits(
   limit = 12
 ): Promise<ProductWithUnits[]> {
   const db = await getDb();
-  const q = `%${search.trim()}%`;
-  const products = await db.select<Product[]>(
-    `SELECT * FROM products
-     WHERE name LIKE $1 OR barcode LIKE $1 OR category LIKE $1
-     ORDER BY name COLLATE NOCASE
-     LIMIT $2`,
-    [q, limit]
-  );
+  const term = search.trim();
+  let products: Product[];
+  if (term) {
+    const all = await db.select<Product[]>(
+      "SELECT * FROM products ORDER BY name COLLATE NOCASE"
+    );
+    products = all
+      .filter(
+        (p) =>
+          fuzzyIncludes(p.name, term) ||
+          fuzzyIncludes(p.barcode, term) ||
+          fuzzyIncludes(p.category, term)
+      )
+      .slice(0, limit);
+  } else {
+    products = await db.select<Product[]>(
+      "SELECT * FROM products ORDER BY name COLLATE NOCASE LIMIT $1",
+      [limit]
+    );
+  }
   const result: ProductWithUnits[] = [];
   for (const p of products) {
     result.push({ ...p, sell_units: await getSellUnits(p.id) });
@@ -111,6 +123,57 @@ export async function listCategories(): Promise<string[]> {
     "SELECT DISTINCT category FROM products WHERE category IS NOT NULL AND category <> '' ORDER BY category"
   );
   return rows.map((r) => r.category);
+}
+
+export interface CategoryWithCount {
+  category: string;
+  count: number;
+}
+
+/** Categories with how many products use each, for the management screen. */
+export async function listCategoriesWithCounts(): Promise<CategoryWithCount[]> {
+  const db = await getDb();
+  return db.select<CategoryWithCount[]>(
+    `SELECT category, COUNT(*) AS count FROM products
+     WHERE category IS NOT NULL AND category <> ''
+     GROUP BY category ORDER BY category COLLATE NOCASE`
+  );
+}
+
+/** Rename a category across all products that use it. */
+export async function renameCategory(
+  oldName: string,
+  newName: string
+): Promise<void> {
+  const db = await getDb();
+  await db.execute(
+    "UPDATE products SET category = $1, updated_at = CURRENT_TIMESTAMP WHERE category = $2",
+    [newName.trim(), oldName]
+  );
+}
+
+/** Clear a category from every product that uses it (products are kept). */
+export async function deleteCategory(name: string): Promise<void> {
+  const db = await getDb();
+  await db.execute(
+    "UPDATE products SET category = NULL, updated_at = CURRENT_TIMESTAMP WHERE category = $1",
+    [name]
+  );
+}
+
+/** Merge several categories into one target category. */
+export async function mergeCategories(
+  sourceNames: string[],
+  targetName: string
+): Promise<void> {
+  const db = await getDb();
+  const toMerge = sourceNames.filter((n) => n !== targetName);
+  for (const name of toMerge) {
+    await db.execute(
+      "UPDATE products SET category = $1, updated_at = CURRENT_TIMESTAMP WHERE category = $2",
+      [targetName.trim(), name]
+    );
+  }
 }
 
 /** Insert a product plus its sell units; records an initial purchase movement. */
@@ -267,11 +330,66 @@ export async function searchCustomers(
   limit = 8
 ): Promise<Customer[]> {
   const db = await getDb();
-  const q = `%${search.trim()}%`;
-  return db.select<Customer[]>(
-    "SELECT * FROM customers WHERE name LIKE $1 ORDER BY name COLLATE NOCASE LIMIT $2",
-    [q, limit]
+  const term = search.trim();
+  if (!term) {
+    return db.select<Customer[]>(
+      "SELECT * FROM customers ORDER BY name COLLATE NOCASE LIMIT $1",
+      [limit]
+    );
+  }
+  const all = await db.select<Customer[]>(
+    "SELECT * FROM customers ORDER BY name COLLATE NOCASE"
   );
+  return all.filter((c) => fuzzyIncludes(c.name, term)).slice(0, limit);
+}
+
+export interface CustomerWithCount extends Customer {
+  sale_count: number;
+}
+
+/** Customers with their sale counts, for the management screen. */
+export async function listCustomersWithCounts(): Promise<CustomerWithCount[]> {
+  const db = await getDb();
+  return db.select<CustomerWithCount[]>(
+    `SELECT c.*, COUNT(s.id) AS sale_count
+     FROM customers c
+     LEFT JOIN sales s ON s.customer_id = c.id
+     GROUP BY c.id ORDER BY c.name COLLATE NOCASE`
+  );
+}
+
+/** Rename a customer; past sales keep their original snapshot name. */
+export async function renameCustomer(id: number, name: string): Promise<void> {
+  const db = await getDb();
+  await db.execute("UPDATE customers SET name = $1 WHERE id = $2", [
+    name.trim(),
+    id,
+  ]);
+}
+
+/** Delete a customer. Past sales are kept but unlinked (customer_name snapshot remains). */
+export async function deleteCustomer(id: number): Promise<void> {
+  const db = await getDb();
+  await db.execute("UPDATE sales SET customer_id = NULL WHERE customer_id = $1", [
+    id,
+  ]);
+  await db.execute("DELETE FROM customers WHERE id = $1", [id]);
+}
+
+/** Merge several customers into one target; reassigns their sales and deletes the rest. */
+export async function mergeCustomers(
+  sourceIds: number[],
+  targetId: number
+): Promise<void> {
+  const db = await getDb();
+  const toMerge = sourceIds.filter((id) => id !== targetId);
+  for (const id of toMerge) {
+    await db.execute("UPDATE sales SET customer_id = $1 WHERE customer_id = $2", [
+      targetId,
+      id,
+    ]);
+    await db.execute("DELETE FROM customers WHERE id = $1", [id]);
+  }
 }
 
 /** Find a customer by exact (case-insensitive) name, or create one. */

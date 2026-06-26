@@ -274,5 +274,29 @@ export const en: Record<TranslationKey, string> = {
   "stock.outAlert": "{n} product(s) out of stock",
   "stock.outTitle": "Out of stock",
   "stock.lowTitle": "Low stock",
+
+  // Categories & customers maintenance (settings)
+  "settings.catalog": "Categories & customers",
+  "settings.catalogHint": "Rename, delete, or merge categories and customers.",
+  "settings.manageCatalog": "Manage categories & customers",
+  "settings.catalogEmpty": "Nothing here yet.",
+  "settings.catalogCount": "{count} product(s)",
+  "settings.catalogSales": "{count} sale(s)",
+  "settings.catalogSaved": "Changes saved",
+  "settings.catalogMerged": "Merge complete",
+  "settings.mergeInto": "Merge selection into:",
+  "settings.mergeChoose": "Choose target…",
+  "settings.mergeAction": "Merge",
+  "settings.deleteCategoryConfirm":
+    "Delete category \"{name}\"? It will be removed from {count} product(s) (products are not deleted).",
+  "settings.deleteCustomerConfirm":
+    "Delete customer \"{name}\"? Their {count} sale(s) are kept with no customer attached.",
+
+  // Restore from backup (settings)
+  "settings.restore": "Restore backup (.db)",
+  "settings.restoreConfirm":
+    "This will replace ALL current data with the chosen backup file. This cannot be undone. Continue?",
+  "settings.restoreDone": "Backup restored. The app will restart.",
+  "settings.restoreError": "Could not restore the backup: {error}",
 };
 

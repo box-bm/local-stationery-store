@@ -1,7 +1,8 @@
 import { appConfigDir, join } from "@tauri-apps/api/path";
-import { save } from "@tauri-apps/plugin-dialog";
-import { copyFile } from "@tauri-apps/plugin-fs";
+import { open, save } from "@tauri-apps/plugin-dialog";
+import { copyFile, exists, remove } from "@tauri-apps/plugin-fs";
 import { openPath, revealItemInDir } from "@tauri-apps/plugin-opener";
+import { relaunch } from "@tauri-apps/plugin-process";
 import { getDb } from "./db";
 
 const DB_FILE = "libreria.db";
@@ -46,5 +47,43 @@ export async function backupDatabase(): Promise<boolean> {
   if (!dest) return false;
 
   await copyFile(await getDbPath(), dest);
+  return true;
+}
+
+/**
+ * Restore the database from a user-chosen .db backup file, overwriting all
+ * current data. Checkpoints + drops any WAL/SHM sidecar files so the
+ * restored file is the sole source of truth, then relaunches the app so a
+ * fresh connection picks it up cleanly.
+ */
+export async function restoreDatabase(): Promise<boolean> {
+  const src = await open({
+    multiple: false,
+    filters: [{ name: "SQLite", extensions: ["db"] }],
+  });
+  if (!src) return false;
+
+  const db = await getDb();
+  try {
+    await db.execute("PRAGMA wal_checkpoint(TRUNCATE);");
+  } catch {
+    /* checkpoint is best-effort */
+  }
+
+  const dbPath = await getDbPath();
+  await copyFile(src as string, dbPath);
+
+  // Drop stale WAL/SHM sidecars left over from the previous database so the
+  // restored file isn't merged with leftover write-ahead data.
+  for (const suffix of ["-wal", "-shm"]) {
+    const sidecar = dbPath + suffix;
+    try {
+      if (await exists(sidecar)) await remove(sidecar);
+    } catch {
+      /* best-effort cleanup */
+    }
+  }
+
+  await relaunch();
   return true;
 }
