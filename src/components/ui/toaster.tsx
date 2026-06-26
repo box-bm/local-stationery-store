@@ -12,9 +12,9 @@ const ICONS: Record<ToastVariant, typeof Info> = {
 
 const STYLES: Record<ToastVariant, string> = {
   default: "border-border bg-card text-card-foreground",
-  success: "border-success/40 bg-success/10 text-foreground",
-  error: "border-destructive/40 bg-destructive/10 text-foreground",
-  warning: "border-warning/40 bg-warning/10 text-foreground",
+  success: "border-success/40 bg-card text-card-foreground",
+  error: "border-destructive/40 bg-card text-card-foreground",
+  warning: "border-warning/40 bg-card text-card-foreground",
 };
 
 const ICON_COLOR: Record<ToastVariant, string> = {

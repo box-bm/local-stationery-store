@@ -49,7 +49,7 @@ export function StockAlertBanner({ className }: { className?: string }) {
       {outOfStockCount > 0 && (
         <button
           onClick={() => setScreen("inventory")}
-          className="flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-left text-sm"
+          className="flex items-center gap-2 rounded-lg border border-destructive/40 bg-card px-3 py-2 text-left text-sm"
         >
           <XCircle className="h-4 w-4 shrink-0 text-destructive" />
           <span>{t("stock.outAlert", { n: outOfStockCount })}</span>
@@ -58,7 +58,7 @@ export function StockAlertBanner({ className }: { className?: string }) {
       {lowStockCount > 0 && (
         <button
           onClick={() => setScreen("inventory")}
-          className="flex items-center gap-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-left text-sm"
+          className="flex items-center gap-2 rounded-lg border border-warning/40 bg-card px-3 py-2 text-left text-sm"
         >
           <AlertTriangle className="h-4 w-4 shrink-0 text-warning" />
           <span>{t("stock.lowAlert", { n: lowStockCount })}</span>

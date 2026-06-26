@@ -128,8 +128,8 @@ export function POSScreen() {
           )}
         </div>
 
-        {/* Results grid */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-6">
+        {/* Results grid — pb-24 on small screens reserves space for the floating cart FAB */}
+        <div className="flex-1 overflow-y-auto p-4 pb-24 md:p-6 lg:pb-6">
           <StockAlertBanner className="mb-4" />
           {visible.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center text-muted-foreground">
@@ -147,25 +147,19 @@ export function POSScreen() {
                     key={p.id}
                     onClick={() => setSelected(p)}
                     disabled={out}
-                    className="flex flex-col rounded-xl border border-border bg-card p-4 text-left transition-all hover:border-primary hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex flex-col rounded-xl border border-border bg-card p-3 text-left transition-all hover:border-primary hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 sm:p-4"
                   >
-                    <div className="mb-2 flex items-start justify-between gap-2">
-                      <span className="line-clamp-2 font-medium leading-tight">
-                        {p.name}
-                      </span>
-                      <StockBadge
-                        stock={p.stock}
-                        minStock={p.min_stock}
-                        className="shrink-0"
-                      />
-                    </div>
+                    {/* Name gets full width — no competing badge */}
+                    <p className="mb-1 line-clamp-2 font-medium leading-tight">
+                      {p.name}
+                    </p>
                     {p.category && (
-                      <span className="text-xs text-muted-foreground">
+                      <span className="mb-2 text-xs text-muted-foreground">
                         {p.category}
                       </span>
                     )}
-                    <div className="mt-auto pt-3">
-                      <p className="text-lg font-bold text-primary">
+                    <div className="mt-auto pt-2">
+                      <p className="text-base font-bold text-primary sm:text-lg">
                         {def ? formatQ(def.sell_price) : "—"}
                         {def && (
                           <span className="text-xs font-normal text-muted-foreground">
@@ -174,9 +168,12 @@ export function POSScreen() {
                           </span>
                         )}
                       </p>
-                      <p className="text-xs text-muted-foreground">
-                        {t("pos.stock")}: {formatStock(p.stock)} {p.base_unit_name}
-                      </p>
+                      <div className="mt-1 flex items-center justify-between gap-1">
+                        <p className="text-xs text-muted-foreground">
+                          {formatStock(p.stock)} {p.base_unit_name}
+                        </p>
+                        <StockBadge stock={p.stock} minStock={p.min_stock} />
+                      </div>
                     </div>
                   </button>
                 );
