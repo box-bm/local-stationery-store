@@ -275,6 +275,30 @@ export const es = {
   "stock.outAlert": "{n} producto(s) agotado(s)",
   "stock.outTitle": "Sin stock",
   "stock.lowTitle": "Stock bajo",
+
+  // Categories & customers maintenance (settings)
+  "settings.catalog": "Categorías y clientes",
+  "settings.catalogHint": "Renombrá, eliminá o fusioná categorías y clientes.",
+  "settings.manageCatalog": "Gestionar categorías y clientes",
+  "settings.catalogEmpty": "No hay elementos todavía.",
+  "settings.catalogCount": "{count} producto(s)",
+  "settings.catalogSales": "{count} venta(s)",
+  "settings.catalogSaved": "Cambios guardados",
+  "settings.catalogMerged": "Fusión completada",
+  "settings.mergeInto": "Fusionar selección en:",
+  "settings.mergeChoose": "Elegí el destino…",
+  "settings.mergeAction": "Fusionar",
+  "settings.deleteCategoryConfirm":
+    "¿Eliminar la categoría \"{name}\"? Se quitará de {count} producto(s) (los productos no se eliminan).",
+  "settings.deleteCustomerConfirm":
+    "¿Eliminar al cliente \"{name}\"? Sus {count} venta(s) se conservan sin cliente asociado.",
+
+  // Restore from backup (settings)
+  "settings.restore": "Restaurar respaldo (.db)",
+  "settings.restoreConfirm":
+    "Esto reemplazará TODOS los datos actuales con los del archivo de respaldo elegido. Esta acción no se puede deshacer. ¿Continuar?",
+  "settings.restoreDone": "Respaldo restaurado. La app se reiniciará.",
+  "settings.restoreError": "No se pudo restaurar el respaldo: {error}",
 } as const;
 
 export type TranslationKey = keyof typeof es;
