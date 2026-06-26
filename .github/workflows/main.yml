@@ -1,0 +1,62 @@
+name: Main
+
+# On merge/push to main: run the full test suite, then create (or refresh) a
+# DRAFT GitHub release for the current package.json version. Publishing that
+# draft later triggers the build & distribute workflow (release.yml).
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: main
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Run all tests
+        run: npm test
+
+      - name: Build frontend
+        run: npm run build
+
+  draft-release:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create or update draft release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          TAG="v$VERSION"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists — leaving it as is."
+          else
+            echo "Creating draft release $TAG"
+            gh release create "$TAG" \
+              --draft \
+              --title "Librería POS $TAG" \
+              --generate-notes \
+              --target "$GITHUB_SHA"
+          fi

@@ -1,0 +1,23 @@
+# Dependencies
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
+
+# Rust / Tauri
+src-tauri/target
+src-tauri/gen
+
+# Updater signing keys (keep private!)
+.keys/
+app-icon.png
