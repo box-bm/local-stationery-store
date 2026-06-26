@@ -1,8 +1,5 @@
 name: Release (build & distribute)
 
-# Triggered when a GitHub Release is PUBLISHED (e.g. you publish the draft that
-# the Main workflow created). Builds installers + signed updater artifacts for
-# each platform and uploads them, plus latest.json, to that same release.
 on:
   release:
     types: [published]
@@ -10,10 +7,14 @@ on:
 env:
   TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
   TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+  # Prevents curl HTTP/2 framing errors when downloading crates on Ubuntu runners.
+  CARGO_HTTP_MULTIPLEXING: "false"
 
 jobs:
-  # Build the frontend once and share the dist/ artifact across all platform jobs.
-  build-frontend:
+  # ── 1 ── Install Node deps and compile the frontend once.
+  #         The dist/ output is shared with all platform build jobs.
+  pre-config:
+    name: Pre-config
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -37,18 +38,19 @@ jobs:
           path: dist/
           retention-days: 1
 
-  release:
-    needs: build-frontend
+  # ── 2 ── Compile the Tauri app and sign the installers on each platform.
+  #         Runs in parallel once pre-config finishes.
+  build-installers:
+    name: Build installers
+    needs: pre-config
     permissions:
       contents: write
     strategy:
       fail-fast: false
       matrix:
         include:
-          # Windows is the primary deployment target.
           - platform: windows-latest
             args: ""
-          # macOS (Apple Silicon + Intel) and Linux are optional extras.
           - platform: macos-latest
             args: "--target universal-apple-darwin"
           - platform: ubuntu-22.04
@@ -58,7 +60,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Linux dependencies
+      - name: Install Linux system dependencies
         if: matrix.platform == 'ubuntu-22.04'
         run: |
           sudo apt-get update
@@ -80,13 +82,34 @@ jobs:
           name: frontend-dist
           path: dist/
 
-      - name: Build and release
+      - name: Build and sign installers
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           releaseId: ${{ github.event.release.id }}
           includeUpdaterJson: true
-          # dist/ was pre-built in the build-frontend job; skip the frontend build step.
+          # dist/ is already built — skip the frontend step.
           beforeBuildCommand: ""
           args: ${{ matrix.args }}
+
+  # ── 3 ── Wait for all platform builds, then verify the release assets
+  #         and print a summary. Runs once all build-installers jobs pass.
+  publish-release:
+    name: Publish release
+    needs: build-installers
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: List uploaded release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ github.event.release.tag_name }}"
+          echo "### Release $TAG — uploaded assets" >> $GITHUB_STEP_SUMMARY
+          gh release view "$TAG" \
+            --repo "${{ github.repository }}" \
+            --json assets \
+            --jq '.assets[] | "- \(.name) (\(.size / 1024 / 1024 | floor) MB)"' \
+            >> $GITHUB_STEP_SUMMARY
