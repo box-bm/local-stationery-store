@@ -66,6 +66,15 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -82,6 +91,10 @@ jobs:
           name: frontend-dist
           path: dist/
 
+      - name: Skip frontend rebuild in tauri build
+        run: echo '{"build":{"beforeBuildCommand":""}}' > ci-config.json
+        shell: bash
+
       - name: Build and sign installers
         uses: tauri-apps/tauri-action@v0
         env:
@@ -89,9 +102,7 @@ jobs:
         with:
           releaseId: ${{ github.event.release.id }}
           includeUpdaterJson: true
-          # dist/ is already built — skip the frontend step.
-          beforeBuildCommand: ""
-          args: ${{ matrix.args }}
+          args: ${{ matrix.args }} --config ci-config.json
 
   # ── 3 ── Wait for all platform builds, then verify the release assets
   #         and print a summary. Runs once all build-installers jobs pass.
