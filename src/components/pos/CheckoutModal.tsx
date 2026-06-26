@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { CheckCircle2, Banknote, CreditCard, Smartphone } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { CheckCircle2, Banknote, Smartphone } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -11,9 +11,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { MoneyInput } from "@/components/ui/money-input";
+import { CustomerInput } from "./CustomerInput";
 import { useCartStore } from "@/stores/cart";
 import { completeSale } from "@/services/db";
 import { useAppStore } from "@/stores/app";
+import { useSettingsStore, type PaymentMethodId } from "@/stores/settings";
 import { toast } from "@/stores/toast";
 import { useT, type TranslationKey } from "@/i18n";
 import { formatQ, cn } from "@/lib/utils";
@@ -24,9 +27,13 @@ interface Props {
   onClose: () => void;
 }
 
-const PAYMENT_METHODS: { id: string; labelKey: TranslationKey; icon: typeof Banknote }[] = [
+// Card was removed; only cash and transfer remain (gated by settings).
+const PAYMENT_METHODS: {
+  id: PaymentMethodId;
+  labelKey: TranslationKey;
+  icon: typeof Banknote;
+}[] = [
   { id: "cash", labelKey: "checkout.cash", icon: Banknote },
-  { id: "card", labelKey: "checkout.card", icon: CreditCard },
   { id: "transfer", labelKey: "checkout.transfer", icon: Smartphone },
 ];
 
@@ -35,51 +42,64 @@ type Phase = "confirm" | "done";
 export function CheckoutModal({ open, onClose }: Props) {
   const t = useT();
   const { items, total, clear } = useCartStore();
-  const refreshLowStock = useAppStore((s) => s.refreshLowStock);
+  const refreshStockAlerts = useAppStore((s) => s.refreshStockAlerts);
+  const enabledPayments = useSettingsStore((s) => s.paymentMethods);
+
+  const available = useMemo(
+    () => PAYMENT_METHODS.filter((m) => enabledPayments[m.id]),
+    [enabledPayments]
+  );
 
   const [phase, setPhase] = useState<Phase>("confirm");
-  const [method, setMethod] = useState("cash");
+  const [method, setMethod] = useState<PaymentMethodId>("cash");
+  const [reference, setReference] = useState("");
+  const [customer, setCustomer] = useState("");
   const [notes, setNotes] = useState("");
   const [cashReceived, setCashReceived] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // Snapshot of the sale for the receipt (cart is cleared on success).
   const [receipt, setReceipt] = useState<{
     id: number;
     total: number;
     items: CartItem[];
-    method: string;
     change: number | null;
   } | null>(null);
 
   useEffect(() => {
     if (open) {
       setPhase("confirm");
-      setMethod("cash");
+      setMethod(available[0]?.id ?? "cash");
+      setReference("");
+      setCustomer("");
       setNotes("");
       setCashReceived("");
     }
-  }, [open]);
+  }, [open, available]);
 
   const totalValue = total();
   const cashNum = Number(cashReceived) || 0;
   const change = method === "cash" && cashNum > 0 ? cashNum - totalValue : null;
+  const noMethods = available.length === 0;
 
   async function handleConfirm() {
-    if (saving || !items.length) return;
+    if (saving || !items.length || noMethods) return;
     setSaving(true);
     try {
       const snapshot = [...items];
-      const res = await completeSale(snapshot, method, notes || undefined);
+      const res = await completeSale(snapshot, {
+        paymentMethod: method,
+        paymentReference: method === "transfer" ? reference : null,
+        customerName: customer || null,
+        notes: notes || null,
+      });
       setReceipt({
         id: res.saleId,
         total: res.total,
         items: snapshot,
-        method,
         change: method === "cash" && cashNum > 0 ? cashNum - res.total : null,
       });
       clear();
-      await refreshLowStock();
+      await refreshStockAlerts();
       setPhase("done");
       toast.success(t("checkout.saleRegistered", { id: res.saleId }));
     } catch (e) {
@@ -118,38 +138,66 @@ export function CheckoutModal({ open, onClose }: Props) {
                 <p className="text-4xl font-bold">{formatQ(totalValue)}</p>
               </div>
 
+              {/* Customer (optional, with autocomplete) */}
+              <div className="space-y-1.5">
+                <Label>{t("checkout.customer")}</Label>
+                <CustomerInput value={customer} onChange={setCustomer} />
+              </div>
+
               <div className="space-y-1.5">
                 <Label>{t("checkout.paymentMethod")}</Label>
-                <div className="grid grid-cols-3 gap-2">
-                  {PAYMENT_METHODS.map((m) => {
-                    const Icon = m.icon;
-                    const active = method === m.id;
-                    return (
-                      <button
-                        key={m.id}
-                        onClick={() => setMethod(m.id)}
-                        className={cn(
-                          "flex flex-col items-center gap-1 rounded-lg border p-3 text-xs font-medium transition-colors",
-                          active
-                            ? "border-primary bg-primary/10"
-                            : "border-border hover:bg-accent"
-                        )}
-                      >
-                        <Icon className="h-5 w-5" />
-                        {t(m.labelKey)}
-                      </button>
-                    );
-                  })}
-                </div>
+                {noMethods ? (
+                  <p className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-sm">
+                    {t("checkout.noPaymentMethod")}
+                  </p>
+                ) : (
+                  <div
+                    className="grid gap-2"
+                    style={{
+                      gridTemplateColumns: `repeat(${available.length}, minmax(0, 1fr))`,
+                    }}
+                  >
+                    {available.map((m) => {
+                      const Icon = m.icon;
+                      const active = method === m.id;
+                      return (
+                        <button
+                          key={m.id}
+                          onClick={() => setMethod(m.id)}
+                          className={cn(
+                            "flex flex-col items-center gap-1 rounded-lg border p-3 text-xs font-medium transition-colors",
+                            active
+                              ? "border-primary bg-primary/10"
+                              : "border-border hover:bg-accent"
+                          )}
+                        >
+                          <Icon className="h-5 w-5" />
+                          {t(m.labelKey)}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
+
+              {/* Transfer authorization code */}
+              {method === "transfer" && !noMethods && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="ref">{t("checkout.reference")}</Label>
+                  <Input
+                    id="ref"
+                    value={reference}
+                    onChange={(e) => setReference(e.target.value)}
+                    placeholder={t("checkout.referencePlaceholder")}
+                  />
+                </div>
+              )}
 
               {method === "cash" && (
                 <div className="space-y-1.5">
                   <Label htmlFor="cash">{t("checkout.cashReceived")}</Label>
-                  <Input
+                  <MoneyInput
                     id="cash"
-                    type="number"
-                    inputMode="decimal"
                     placeholder="0.00"
                     value={cashReceived}
                     onChange={(e) => setCashReceived(e.target.value)}
@@ -184,7 +232,11 @@ export function CheckoutModal({ open, onClose }: Props) {
               <Button variant="outline" onClick={onClose} disabled={saving}>
                 {t("common.cancel")}
               </Button>
-              <Button variant="success" onClick={handleConfirm} disabled={saving}>
+              <Button
+                variant="success"
+                onClick={handleConfirm}
+                disabled={saving || noMethods}
+              >
                 {saving
                   ? t("common.saving")
                   : t("checkout.charge", { amount: formatQ(totalValue) })}

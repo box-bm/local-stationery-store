@@ -28,11 +28,21 @@ interface Props {
 }
 
 export function Sidebar({ onShowGuide }: Props) {
-  const { screen, setScreen, lowStockCount, sidebarCollapsed, toggleSidebar } =
-    useAppStore();
-  const { isDark, setTheme } = useSettingsStore();
+  const {
+    screen,
+    setScreen,
+    lowStockCount,
+    outOfStockCount,
+    sidebarCollapsed,
+    toggleSidebar,
+  } = useAppStore();
+  const { isDark, setTheme, storeName } = useSettingsStore();
   const t = useT();
   const collapsed = sidebarCollapsed;
+
+  // Out-of-stock (error) takes precedence over low stock (warning).
+  const alertCount = outOfStockCount || lowStockCount;
+  const alertVariant = outOfStockCount > 0 ? "destructive" : "warning";
 
   return (
     <aside
@@ -53,7 +63,7 @@ export function Sidebar({ onShowGuide }: Props) {
         {!collapsed && (
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold leading-tight">
-              {t("nav.appName")}
+              {storeName || t("nav.appName")}
             </p>
             <p className="truncate text-xs text-muted-foreground">
               {t("nav.appSubtitle")}
@@ -81,12 +91,12 @@ export function Sidebar({ onShowGuide }: Props) {
             >
               <Icon className="h-5 w-5 shrink-0" />
               {!collapsed && <span className="flex-1 text-left">{t(item.key)}</span>}
-              {item.id === "inventory" && lowStockCount > 0 && (
+              {item.id === "inventory" && alertCount > 0 && (
                 <Badge
-                  variant={active ? "secondary" : "warning"}
+                  variant={active ? "secondary" : alertVariant}
                   className={cn("h-5 px-1.5", collapsed && "absolute ml-6 mt-[-1.2rem]")}
                 >
-                  {lowStockCount}
+                  {alertCount}
                 </Badge>
               )}
             </button>

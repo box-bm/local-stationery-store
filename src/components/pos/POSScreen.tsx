@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Search, ScanLine, Package, ShoppingCart, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import { MultiSelect } from "@/components/ui/multi-select";
+import { StockBadge, StockAlertBanner } from "@/components/shared/StockAlerts";
 import { Cart } from "./Cart";
 import { SellUnitModal } from "./SellUnitModal";
 import { CheckoutModal } from "./CheckoutModal";
@@ -15,7 +16,8 @@ import {
 import { useCartStore } from "@/stores/cart";
 import { toast } from "@/stores/toast";
 import { useT } from "@/i18n";
-import { formatQ, formatStock, cn } from "@/lib/utils";
+import { stockStatus } from "@/lib/stock";
+import { formatQ, formatStock } from "@/lib/utils";
 import type { ProductWithUnits, SellUnit } from "@/types";
 
 export function POSScreen() {
@@ -24,7 +26,7 @@ export function POSScreen() {
   const debounced = useDebounce(query, 200);
   const [results, setResults] = useState<ProductWithUnits[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
-  const [category, setCategory] = useState<string | null>(null);
+  const [selectedCats, setSelectedCats] = useState<string[]>([]);
   const [selected, setSelected] = useState<ProductWithUnits | null>(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false); // overlay on narrow screens
@@ -52,8 +54,11 @@ export function POSScreen() {
   }, []);
 
   const visible = useMemo(
-    () => (category ? results.filter((p) => p.category === category) : results),
-    [results, category]
+    () =>
+      selectedCats.length
+        ? results.filter((p) => p.category && selectedCats.includes(p.category))
+        : results,
+    [results, selectedCats]
   );
 
   // Barcode scanner: look up by barcode and add the default unit directly.
@@ -107,27 +112,25 @@ export function POSScreen() {
             <ScanLine className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
           </div>
 
-          {/* Category filter chips */}
+          {/* Category filter — multi-select dropdown */}
           {categories.length > 0 && (
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              <Chip active={category === null} onClick={() => setCategory(null)}>
-                {t("pos.allCategories")}
-              </Chip>
-              {categories.map((c) => (
-                <Chip
-                  key={c}
-                  active={category === c}
-                  onClick={() => setCategory(category === c ? null : c)}
-                >
-                  {c}
-                </Chip>
-              ))}
+            <div className="mt-3 flex">
+              <MultiSelect
+                className="w-56"
+                label={t("pos.categories")}
+                allLabel={t("pos.allCategories")}
+                clearLabel={t("common.clear")}
+                options={categories}
+                selected={selectedCats}
+                onChange={setSelectedCats}
+              />
             </div>
           )}
         </div>
 
         {/* Results grid */}
         <div className="flex-1 overflow-y-auto p-4 md:p-6">
+          <StockAlertBanner className="mb-4" />
           {visible.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center text-muted-foreground">
               <Package className="mb-3 h-12 w-12 opacity-30" />
@@ -138,7 +141,7 @@ export function POSScreen() {
               {visible.map((p) => {
                 const def =
                   p.sell_units.find((u) => u.is_default) ?? p.sell_units[0];
-                const out = p.stock <= 0;
+                const out = stockStatus(p.stock, p.min_stock) === "out";
                 return (
                   <button
                     key={p.id}
@@ -150,11 +153,11 @@ export function POSScreen() {
                       <span className="line-clamp-2 font-medium leading-tight">
                         {p.name}
                       </span>
-                      {out && (
-                        <Badge variant="destructive" className="shrink-0">
-                          {t("pos.outOfStock")}
-                        </Badge>
-                      )}
+                      <StockBadge
+                        stock={p.stock}
+                        minStock={p.min_stock}
+                        className="shrink-0"
+                      />
                     </div>
                     {p.category && (
                       <span className="text-xs text-muted-foreground">
@@ -245,29 +248,5 @@ export function POSScreen() {
         }}
       />
     </div>
-  );
-}
-
-function Chip({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "rounded-full border px-3 py-1 text-sm transition-colors",
-        active
-          ? "border-primary bg-primary text-primary-foreground"
-          : "border-border text-muted-foreground hover:bg-accent"
-      )}
-    >
-      {children}
-    </button>
   );
 }

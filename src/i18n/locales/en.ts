@@ -246,4 +246,33 @@ export const en: Record<TranslationKey, string> = {
   "guide.settingsTitle": "Make it yours",
   "guide.settingsBody":
     "In Settings you change language, theme, currency, create backups and protect the app with a password.",
+
+  // Common (extra)
+  "common.clear": "Clear",
+
+  // Payment methods (settings)
+  "settings.payments": "Payment methods",
+  "settings.paymentsHint": "Enable the methods available at checkout.",
+
+  // Checkout (extra)
+  "checkout.reference": "Authorization code",
+  "checkout.referencePlaceholder": "Authorization / reference no.",
+  "checkout.customer": "Customer (optional)",
+  "checkout.customerPlaceholder": "Customer name",
+  "checkout.customerCreate": "Create customer “{name}”",
+  "checkout.noPaymentMethod": "Enable at least one payment method in Settings.",
+
+  // POS / categories filter
+  "pos.categories": "Categories",
+
+  // Sales (extra)
+  "sales.customer": "Customer",
+  "sales.noCustomer": "No customer",
+
+  // Centralized stock alerts
+  "stock.lowAlert": "{n} product(s) low on stock",
+  "stock.outAlert": "{n} product(s) out of stock",
+  "stock.outTitle": "Out of stock",
+  "stock.lowTitle": "Low stock",
 };
+

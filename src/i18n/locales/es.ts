@@ -246,6 +246,35 @@ export const es = {
   "guide.settingsTitle": "A tu medida",
   "guide.settingsBody":
     "En Configuración cambiás idioma, tema, moneda, creás respaldos y protegés la app con contraseña.",
+
+  // Common (extra)
+  "common.clear": "Limpiar",
+
+  // Payment methods (settings)
+  "settings.payments": "Métodos de pago",
+  "settings.paymentsHint": "Activá los métodos disponibles al momento de cobrar.",
+
+  // Checkout (extra)
+  "checkout.reference": "Código de autorización",
+  "checkout.referencePlaceholder": "N.° de autorización / referencia",
+  "checkout.customer": "Cliente (opcional)",
+  "checkout.customerPlaceholder": "Nombre del cliente",
+  "checkout.customerCreate": "Crear cliente “{name}”",
+  "checkout.noPaymentMethod":
+    "Activá al menos un método de pago en Configuración.",
+
+  // POS / categories filter
+  "pos.categories": "Categorías",
+
+  // Sales (extra)
+  "sales.customer": "Cliente",
+  "sales.noCustomer": "Sin cliente",
+
+  // Centralized stock alerts
+  "stock.lowAlert": "{n} producto(s) con stock bajo",
+  "stock.outAlert": "{n} producto(s) agotado(s)",
+  "stock.outTitle": "Sin stock",
+  "stock.lowTitle": "Stock bajo",
 } as const;
 
 export type TranslationKey = keyof typeof es;

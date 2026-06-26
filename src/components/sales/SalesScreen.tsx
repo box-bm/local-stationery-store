@@ -205,6 +205,9 @@ export function SalesScreen() {
                   <th className="w-8 px-4 py-3" />
                   <th className="px-4 py-3 font-medium">{t("sales.sale")}</th>
                   <th className="px-4 py-3 font-medium">{t("sales.date")}</th>
+                  <th className="hidden px-4 py-3 font-medium md:table-cell">
+                    {t("sales.customer")}
+                  </th>
                   <th className="hidden px-4 py-3 font-medium sm:table-cell">
                     {t("sales.payment")}
                   </th>
@@ -235,6 +238,9 @@ export function SalesScreen() {
                         <td className="px-4 py-3 text-muted-foreground">
                           {formatDateTime(s.created_at)}
                         </td>
+                        <td className="hidden px-4 py-3 text-muted-foreground md:table-cell">
+                          {s.customer_name || "—"}
+                        </td>
                         <td className="hidden px-4 py-3 sm:table-cell">
                           <Badge variant="secondary">
                             {PAYMENT_KEY[s.payment_method]
@@ -250,7 +256,7 @@ export function SalesScreen() {
                       {isOpen && (
                         <tr key={`${s.id}-detail`} className="bg-muted/30">
                           <td />
-                          <td colSpan={5} className="px-4 py-3">
+                          <td colSpan={6} className="px-4 py-3">
                             <div className="rounded-md border border-border bg-background">
                               <table className="w-full text-sm">
                                 <tbody className="divide-y divide-border">
@@ -273,10 +279,23 @@ export function SalesScreen() {
                                   ))}
                                 </tbody>
                               </table>
-                              {s.notes && (
-                                <p className="border-t border-border px-3 py-2 text-xs text-muted-foreground">
-                                  {t("sales.note", { note: s.notes })}
-                                </p>
+                              {(s.customer_name ||
+                                s.payment_reference ||
+                                s.notes) && (
+                                <div className="space-y-0.5 border-t border-border px-3 py-2 text-xs text-muted-foreground">
+                                  {s.customer_name && (
+                                    <p>
+                                      {t("sales.customer")}: {s.customer_name}
+                                    </p>
+                                  )}
+                                  {s.payment_reference && (
+                                    <p>
+                                      {t("checkout.reference")}:{" "}
+                                      {s.payment_reference}
+                                    </p>
+                                  )}
+                                  {s.notes && <p>{t("sales.note", { note: s.notes })}</p>}
+                                </div>
                               )}
                             </div>
                           </td>

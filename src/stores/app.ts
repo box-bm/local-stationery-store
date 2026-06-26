@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { countLowStock } from "@/services/db";
+import { countStockAlerts } from "@/services/db";
 
 export type Screen = "pos" | "inventory" | "sales" | "settings";
 
@@ -12,8 +12,10 @@ interface AppState {
   toggleSidebar: () => void;
   setSidebarCollapsed: (v: boolean) => void;
 
+  /** Centralized stock alert counts. */
   lowStockCount: number;
-  refreshLowStock: () => Promise<void>;
+  outOfStockCount: number;
+  refreshStockAlerts: () => Promise<void>;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -25,10 +27,11 @@ export const useAppStore = create<AppState>((set) => ({
   setSidebarCollapsed: (sidebarCollapsed) => set({ sidebarCollapsed }),
 
   lowStockCount: 0,
-  refreshLowStock: async () => {
+  outOfStockCount: 0,
+  refreshStockAlerts: async () => {
     try {
-      const n = await countLowStock();
-      set({ lowStockCount: n });
+      const { low, out } = await countStockAlerts();
+      set({ lowStockCount: low, outOfStockCount: out });
     } catch {
       // ignore — DB may not be ready yet
     }

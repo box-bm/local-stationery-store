@@ -14,7 +14,7 @@ import { toast } from "@/stores/toast";
 import { t } from "@/i18n";
 
 export default function App() {
-  const { screen, refreshLowStock, setSidebarCollapsed } = useAppStore();
+  const { screen, refreshStockAlerts, setSidebarCollapsed } = useAppStore();
   const { lockEnabled, onboardingDone, setOnboardingDone } = useSettingsStore();
 
   const [unlocked, setUnlocked] = useState(!lockEnabled);
@@ -27,7 +27,7 @@ export default function App() {
 
   // Initial data + responsive default + silent update check.
   useEffect(() => {
-    refreshLowStock();
+    refreshStockAlerts();
 
     const onResize = () => setSidebarCollapsed(window.innerWidth < 900);
     onResize();
@@ -43,7 +43,7 @@ export default function App() {
       .catch(() => {});
 
     return () => window.removeEventListener("resize", onResize);
-  }, [refreshLowStock, setSidebarCollapsed]);
+  }, [refreshStockAlerts, setSidebarCollapsed]);
 
   function closeGuide() {
     setShowGuide(false);

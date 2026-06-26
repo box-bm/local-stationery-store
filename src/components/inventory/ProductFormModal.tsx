@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { MoneyInput } from "@/components/ui/money-input";
 import { Label } from "@/components/ui/label";
 import { createProduct, updateProduct, getProductWithUnits } from "@/services/db";
 import { toast } from "@/stores/toast";
@@ -271,10 +272,8 @@ export function ProductFormModal({
                 <Label htmlFor="purchase_price">
                   {t("form.purchasePrice", { sym })}
                 </Label>
-                <Input
+                <MoneyInput
                   id="purchase_price"
-                  type="number"
-                  step="any"
                   {...register("purchase_price")}
                 />
               </div>
@@ -348,11 +347,7 @@ export function ProductFormModal({
                     step="any"
                     {...register(`sell_units.${i}.quantity_in_base_units`)}
                   />
-                  <Input
-                    type="number"
-                    step="any"
-                    {...register(`sell_units.${i}.sell_price`)}
-                  />
+                  <MoneyInput {...register(`sell_units.${i}.sell_price`)} />
                   <button
                     type="button"
                     title={t("form.markDefault")}

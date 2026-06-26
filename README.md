@@ -73,18 +73,28 @@ Detalles en [DISTRIBUTION.md](DISTRIBUTION.md).
 
 ## Pantallas
 
-1. **Punto de venta** (inicio) — búsqueda con autocompletado, filtros por
-   categoría, lector de código de barras (USB HID), selección de unidad/cantidad,
-   carrito, cobro y recibo. En ventanas angostas el carrito se vuelve un panel
-   deslizable.
-2. **Inventario** — tabla de productos con alerta de stock bajo, filtro por
-   categoría y "solo stock bajo", alta/edición con múltiples unidades de venta,
+1. **Punto de venta** (inicio) — búsqueda con autocompletado, filtro de
+   categorías por **menú desplegable con checkboxes** (multi-selección), lector
+   de código de barras (USB HID), selección de unidad/cantidad, carrito, cobro y
+   recibo. Al cobrar se puede registrar un **cliente** (autocompletado; se crea
+   si no existe) y, para transferencias, un **código de autorización**. En
+   ventanas angostas el carrito se vuelve un panel deslizable.
+2. **Inventario** — tabla de productos con **alertas centralizadas de stock**
+   (advertencia si es bajo, error si está agotado), filtro por categoría y
+   "solo stock bajo", alta/edición con múltiples unidades de venta,
    reabastecimiento y ajuste de stock.
 3. **Ventas** — historial con filtros por fecha (hoy / semana / mes / rango),
-   detalle por venta y exportación a Excel.
+   columna de cliente, detalle por venta (cliente, código de autorización, notas)
+   y exportación a Excel.
 4. **Configuración** — idioma (es/en), tema (claro/oscuro/sistema), moneda,
-   nombre del negocio, ubicación de los datos + abrir carpeta, respaldos `.db`,
-   exportaciones a Excel, bloqueo opcional con contraseña/PIN y actualizaciones.
+   **métodos de pago** (efectivo / transferencia), nombre del negocio (que
+   aparece en la barra lateral), ubicación de los datos + abrir carpeta,
+   respaldos `.db`, exportaciones a Excel, bloqueo opcional con contraseña/PIN y
+   actualizaciones.
+
+> Las entradas monetarias muestran el símbolo de moneda como prefijo. Las
+> alertas de stock están centralizadas en [`src/lib/stock.ts`](src/lib/stock.ts)
+> y se reflejan en POS, Inventario y la barra lateral.
 
 ## Internacionalización, tema y bloqueo
 

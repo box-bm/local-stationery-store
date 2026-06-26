@@ -3,6 +3,10 @@ import type { Lang } from "@/i18n/translations";
 
 export type ThemeMode = "light" | "dark" | "system";
 
+/** Card was intentionally removed; only these methods are configurable. */
+export type PaymentMethodId = "cash" | "transfer";
+export type PaymentMethods = Record<PaymentMethodId, boolean>;
+
 export interface SettingsState {
   language: Lang;
   theme: ThemeMode;
@@ -15,6 +19,8 @@ export interface SettingsState {
   lockEnabled: boolean;
   lockHash: string | null;
 
+  paymentMethods: PaymentMethods;
+
   onboardingDone: boolean;
 
   setLanguage: (l: Lang) => void;
@@ -22,6 +28,7 @@ export interface SettingsState {
   setCurrency: (symbol: string, code: string) => void;
   setStoreName: (name: string) => void;
   setLock: (enabled: boolean, hash: string | null) => void;
+  setPaymentMethod: (id: PaymentMethodId, enabled: boolean) => void;
   setOnboardingDone: (done: boolean) => void;
 }
 
@@ -35,6 +42,7 @@ interface Persisted {
   storeName: string;
   lockEnabled: boolean;
   lockHash: string | null;
+  paymentMethods: PaymentMethods;
   onboardingDone: boolean;
 }
 
@@ -46,6 +54,7 @@ const DEFAULTS: Persisted = {
   storeName: "Mi Librería",
   lockEnabled: false,
   lockHash: null,
+  paymentMethods: { cash: true, transfer: true },
   onboardingDone: false,
 };
 
@@ -90,6 +99,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => {
       storeName: s.storeName,
       lockEnabled: s.lockEnabled,
       lockHash: s.lockHash,
+      paymentMethods: s.paymentMethods,
       onboardingDone: s.onboardingDone,
     };
   }
@@ -123,6 +133,12 @@ export const useSettingsStore = create<SettingsState>((set, get) => {
     setLock: (lockEnabled, lockHash) => {
       set({ lockEnabled, lockHash });
       persist({ ...snapshot(), lockEnabled, lockHash });
+    },
+
+    setPaymentMethod: (id, enabled) => {
+      const paymentMethods = { ...get().paymentMethods, [id]: enabled };
+      set({ paymentMethods });
+      persist({ ...snapshot(), paymentMethods });
     },
 
     setOnboardingDone: (onboardingDone) => {
