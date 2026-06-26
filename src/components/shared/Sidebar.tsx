@@ -82,20 +82,29 @@ export function Sidebar({ onShowGuide }: Props) {
               onClick={() => setScreen(item.id)}
               title={collapsed ? t(item.key) : undefined}
               className={cn(
-                "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
+                "relative flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
                 collapsed && "justify-center px-0",
                 active
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
               )}
             >
-              <Icon className="h-5 w-5 shrink-0" />
+              <span className="relative shrink-0">
+                <Icon className="h-5 w-5" />
+                {item.id === "inventory" && alertCount > 0 && collapsed && (
+                  <span className={cn(
+                    "absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold",
+                    alertVariant === "destructive"
+                      ? "bg-destructive text-destructive-foreground"
+                      : "bg-warning text-warning-foreground"
+                  )}>
+                    {alertCount}
+                  </span>
+                )}
+              </span>
               {!collapsed && <span className="flex-1 text-left">{t(item.key)}</span>}
-              {item.id === "inventory" && alertCount > 0 && (
-                <Badge
-                  variant={active ? "secondary" : alertVariant}
-                  className={cn("h-5 px-1.5", collapsed && "absolute ml-6 mt-[-1.2rem]")}
-                >
+              {item.id === "inventory" && alertCount > 0 && !collapsed && (
+                <Badge variant={active ? "secondary" : alertVariant} className="h-5 px-1.5">
                   {alertCount}
                 </Badge>
               )}
