@@ -5,7 +5,6 @@ on:
     types: [published]
 
 env:
-  TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
   TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
   # Prevents curl HTTP/2 framing errors when downloading crates on Ubuntu runners.
   CARGO_HTTP_MULTIPLEXING: "false"
@@ -91,9 +90,17 @@ jobs:
           name: frontend-dist
           path: dist/
 
-      - name: Skip frontend rebuild in tauri build
-        run: echo '{"build":{"beforeBuildCommand":""}}' > ci-config.json
+      - name: Write signing key to file
         shell: bash
+        env:
+          SIGNING_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          printf '%s' "$SIGNING_KEY" > "$RUNNER_TEMP/signing.key"
+          echo "TAURI_SIGNING_PRIVATE_KEY=$RUNNER_TEMP/signing.key" >> $GITHUB_ENV
+
+      - name: Skip frontend rebuild in tauri build
+        shell: bash
+        run: echo '{"build":{"beforeBuildCommand":""}}' > ci-config.json
 
       - name: Build and sign installers
         uses: tauri-apps/tauri-action@v0
