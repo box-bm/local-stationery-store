@@ -28,7 +28,7 @@ Tres workflows en `.github/workflows/`:
 |---|---|---|
 | `pr.yml` | Pull request a `main` | Typecheck + tests **solo de los archivos modificados** (`vitest --changed`). |
 | `main.yml` | Push/merge a `main` | Corre **todos** los tests + build, y crea un **release en borrador** para la versión de `package.json`. |
-| `release.yml` | Release **publicado** en GitHub | Compila instaladores firmados (.msi/.exe, .dmg, .AppImage) + `latest.json` y los sube a ese release. |
+| `release.yml` | Release **publicado** en GitHub | 1) Instala deps y compila el frontend **una sola vez**. 2) Los tres jobs de plataforma (Windows/macOS/Linux) descargan ese artefacto y solo compilan Rust, suben instaladores firmados + `latest.json`. |
 
 Flujo completo:
 
