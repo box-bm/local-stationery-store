@@ -10,7 +10,6 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Select } from "@/components/ui/select";
 import { ProductFormModal } from "./ProductFormModal";
 import { RestockModal } from "./RestockModal";
@@ -25,6 +24,8 @@ import { exportInventory } from "@/services/excel";
 import { useAppStore } from "@/stores/app";
 import { toast } from "@/stores/toast";
 import { useT } from "@/i18n";
+import { stockStatus } from "@/lib/stock";
+import { StockBadge, StockAlertBanner } from "@/components/shared/StockAlerts";
 import { formatQ, formatStock, cn } from "@/lib/utils";
 import type { Product } from "@/types";
 
@@ -48,7 +49,7 @@ export function InventoryScreen() {
   const [editId, setEditId] = useState<number | null>(null);
   const [restockTarget, setRestockTarget] = useState<Product | null>(null);
 
-  const refreshLowStock = useAppStore((s) => s.refreshLowStock);
+  const refreshStockAlerts = useAppStore((s) => s.refreshStockAlerts);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -101,7 +102,7 @@ export function InventoryScreen() {
       await deleteProduct(p.id);
       toast.success(t("inv.deleted"));
       await load();
-      await refreshLowStock();
+      await refreshStockAlerts();
     } catch (e) {
       toast.error(t("inv.deleteError", { error: String(e) }));
     }
@@ -118,7 +119,7 @@ export function InventoryScreen() {
 
   async function afterSave() {
     await load();
-    await refreshLowStock();
+    await refreshStockAlerts();
   }
 
   return (
@@ -165,6 +166,7 @@ export function InventoryScreen() {
 
       {/* Table */}
       <div className="flex-1 overflow-auto p-4 md:p-6">
+        <StockAlertBanner className="mb-4" />
         <div className="overflow-hidden rounded-lg border border-border">
           <table className="w-full text-sm">
             <thead className="bg-muted/50 text-left text-xs uppercase text-muted-foreground">
@@ -196,7 +198,7 @@ export function InventoryScreen() {
                 </tr>
               ) : (
                 visible.map((p) => {
-                  const low = p.stock <= p.min_stock;
+                  const status = stockStatus(p.stock, p.min_stock);
                   return (
                     <tr key={p.id} className="hover:bg-accent/40">
                       <td className="px-4 py-3">
@@ -234,13 +236,13 @@ export function InventoryScreen() {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          {low && (
-                            <Badge variant="warning" className="gap-1">
-                              <AlertTriangle className="h-3 w-3" />
-                              {t("inv.lowStock")}
-                            </Badge>
-                          )}
-                          <span className={cn(low && "font-semibold text-warning")}>
+                          <StockBadge stock={p.stock} minStock={p.min_stock} />
+                          <span
+                            className={cn(
+                              status === "out" && "font-semibold text-destructive",
+                              status === "low" && "font-semibold text-warning"
+                            )}
+                          >
                             {formatStock(p.stock)}
                           </span>
                         </div>

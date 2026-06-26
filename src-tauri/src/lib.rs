@@ -101,6 +101,20 @@ INSERT INTO stock_movements (product_id, type, quantity, notes) VALUES
   (3, 'purchase', 40, 'Stock inicial');
 "#;
 
+const CUSTOMERS_AND_SALE_FIELDS: &str = r#"
+CREATE TABLE IF NOT EXISTS customers (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL UNIQUE,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE sales ADD COLUMN customer_id INTEGER REFERENCES customers(id);
+ALTER TABLE sales ADD COLUMN customer_name TEXT;
+ALTER TABLE sales ADD COLUMN payment_reference TEXT;
+
+CREATE INDEX IF NOT EXISTS idx_customers_name ON customers(name);
+"#;
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let migrations = vec![
@@ -114,6 +128,12 @@ pub fn run() {
             version: 2,
             description: "seed_example_products",
             sql: SEED,
+            kind: MigrationKind::Up,
+        },
+        Migration {
+            version: 3,
+            description: "customers_and_sale_fields",
+            sql: CUSTOMERS_AND_SALE_FIELDS,
             kind: MigrationKind::Up,
         },
     ];

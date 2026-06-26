@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { MoneyInput } from "@/components/ui/money-input";
 import { Label } from "@/components/ui/label";
 import { restockProduct, adjustStock } from "@/services/db";
 import { toast } from "@/stores/toast";
@@ -145,10 +146,8 @@ export function RestockModal({ product, open, onClose, onSaved }: Props) {
           {mode === "add" && (
             <div className="space-y-1.5">
               <Label htmlFor="pp">{t("restock.purchasePrice", { sym })}</Label>
-              <Input
+              <MoneyInput
                 id="pp"
-                type="number"
-                step="any"
                 value={purchasePrice}
                 onChange={(e) => setPurchasePrice(e.target.value)}
               />

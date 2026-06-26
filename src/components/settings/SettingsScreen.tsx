@@ -3,6 +3,7 @@ import {
   Palette,
   Languages,
   Coins,
+  Wallet,
   Store,
   Database,
   FolderOpen,
@@ -207,6 +208,27 @@ export function SettingsScreen({ onShowGuide }: Props) {
           </Row>
           <p className="text-xs text-muted-foreground">
             {t("settings.storeNameHint")}
+          </p>
+        </Section>
+
+        {/* Payment methods */}
+        <Section icon={Wallet} title={t("settings.payments")}>
+          <Row label={t("checkout.cash")}>
+            <Toggle
+              checked={s.paymentMethods.cash}
+              onChange={() => s.setPaymentMethod("cash", !s.paymentMethods.cash)}
+            />
+          </Row>
+          <Row label={t("checkout.transfer")}>
+            <Toggle
+              checked={s.paymentMethods.transfer}
+              onChange={() =>
+                s.setPaymentMethod("transfer", !s.paymentMethods.transfer)
+              }
+            />
+          </Row>
+          <p className="text-xs text-muted-foreground">
+            {t("settings.paymentsHint")}
           </p>
         </Section>
 

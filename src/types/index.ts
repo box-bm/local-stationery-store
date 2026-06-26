@@ -34,7 +34,16 @@ export interface Sale {
   id: number;
   total: number;
   payment_method: string;
+  payment_reference: string | null;
+  customer_id: number | null;
+  customer_name: string | null;
   notes: string | null;
+  created_at: string;
+}
+
+export interface Customer {
+  id: number;
+  name: string;
   created_at: string;
 }
 

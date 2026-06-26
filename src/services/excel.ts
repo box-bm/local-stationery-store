@@ -110,8 +110,10 @@ export async function exportSales(range?: DateRange): Promise<boolean> {
     saleRows.push({
       "Venta #": s.id,
       Fecha: formatDateTime(s.created_at),
+      Cliente: s.customer_name ?? "",
       Artículos: s.item_count,
       "Método de pago": s.payment_method,
+      "Cód. autorización": s.payment_reference ?? "",
       "Total (Q)": s.total,
       Notas: s.notes ?? "",
     });

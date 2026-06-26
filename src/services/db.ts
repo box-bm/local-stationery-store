@@ -1,5 +1,6 @@
 import Database from "@tauri-apps/plugin-sql";
 import { cartTotal, lineSubtotal, stockDeducted } from "@/lib/calc";
+import { countStock, type StockCounts } from "@/lib/stock";
 import type {
   Product,
   ProductInput,
@@ -10,6 +11,7 @@ import type {
   SellUnit,
   StockMovement,
   CartItem,
+  Customer,
 } from "@/types";
 
 const DB_URL = "sqlite:libreria.db";
@@ -247,12 +249,44 @@ export async function deleteProduct(id: number): Promise<void> {
   await db.execute("DELETE FROM products WHERE id = $1", [id]);
 }
 
-export async function countLowStock(): Promise<number> {
+/** Centralized stock alert counts: low (warning) and out (error). */
+export async function countStockAlerts(): Promise<StockCounts> {
   const db = await getDb();
-  const rows = await db.select<{ n: number }[]>(
-    "SELECT COUNT(*) AS n FROM products WHERE stock <= min_stock"
+  const rows = await db.select<{ stock: number; min_stock: number }[]>(
+    "SELECT stock, min_stock FROM products"
   );
-  return rows[0]?.n ?? 0;
+  return countStock(rows);
+}
+
+// ---------------------------------------------------------------------------
+// Customers
+// ---------------------------------------------------------------------------
+
+export async function searchCustomers(
+  search: string,
+  limit = 8
+): Promise<Customer[]> {
+  const db = await getDb();
+  const q = `%${search.trim()}%`;
+  return db.select<Customer[]>(
+    "SELECT * FROM customers WHERE name LIKE $1 ORDER BY name COLLATE NOCASE LIMIT $2",
+    [q, limit]
+  );
+}
+
+/** Find a customer by exact (case-insensitive) name, or create one. */
+export async function findOrCreateCustomer(name: string): Promise<Customer> {
+  const db = await getDb();
+  const trimmed = name.trim();
+  const existing = await db.select<Customer[]>(
+    "SELECT * FROM customers WHERE name = $1 COLLATE NOCASE LIMIT 1",
+    [trimmed]
+  );
+  if (existing.length) return existing[0];
+  const res = await db.execute("INSERT INTO customers (name) VALUES ($1)", [
+    trimmed,
+  ]);
+  return { id: res.lastInsertId as number, name: trimmed, created_at: "" };
 }
 
 // ---------------------------------------------------------------------------
@@ -264,6 +298,13 @@ export interface CompleteSaleResult {
   total: number;
 }
 
+export interface SaleMeta {
+  paymentMethod: string;
+  paymentReference?: string | null;
+  customerName?: string | null;
+  notes?: string | null;
+}
+
 /**
  * Persist a completed sale: insert the sale + line items, deduct stock, and
  * record one stock movement per line. Stock deduction follows the simplified
@@ -271,17 +312,34 @@ export interface CompleteSaleResult {
  */
 export async function completeSale(
   cart: CartItem[],
-  paymentMethod: string,
-  notes?: string
+  meta: SaleMeta
 ): Promise<CompleteSaleResult> {
   if (!cart.length) throw new Error("El carrito está vacío");
   const db = await getDb();
 
   const total = cartTotal(cart);
 
+  // Resolve (find or create) the customer if a name was given.
+  let customerId: number | null = null;
+  let customerName: string | null = null;
+  if (meta.customerName && meta.customerName.trim()) {
+    const customer = await findOrCreateCustomer(meta.customerName);
+    customerId = customer.id;
+    customerName = customer.name;
+  }
+
   const saleRes = await db.execute(
-    "INSERT INTO sales (total, payment_method, notes) VALUES ($1,$2,$3)",
-    [total, paymentMethod, notes ?? null]
+    `INSERT INTO sales
+       (total, payment_method, payment_reference, customer_id, customer_name, notes)
+     VALUES ($1,$2,$3,$4,$5,$6)`,
+    [
+      total,
+      meta.paymentMethod,
+      meta.paymentReference?.trim() || null,
+      customerId,
+      customerName,
+      meta.notes?.trim() || null,
+    ]
   );
   const saleId = saleRes.lastInsertId as number;
 
