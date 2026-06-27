@@ -27,19 +27,36 @@ Tres workflows en `.github/workflows/`:
 | Workflow | Disparador | Qué hace |
 |---|---|---|
 | `pr.yml` | Pull request a `main` | Typecheck + tests **solo de los archivos modificados** (`vitest --changed`). |
-| `main.yml` | Push/merge a `main` | Corre **todos** los tests + build, y crea un **release en borrador** para la versión de `package.json`. |
+| `main.yml` | Push/merge a `main` | Tests + **determina automáticamente la versión** a partir de los mensajes de commit (Conventional Commits) → bump → draft release. |
 | `release.yml` | Release **publicado** en GitHub | 1) Instala deps y compila el frontend **una sola vez**. 2) Los tres jobs de plataforma (Windows/macOS/Linux) descargan ese artefacto y solo compilan Rust, suben instaladores firmados + `latest.json`. |
+| `version.yml` | Manual (escape hatch) | Fuerza un bump `major/minor/patch` sin necesidad de un commit convencional. |
 
 Flujo completo:
 
 ```
 PR  ─► pr.yml: typecheck + tests de archivos modificados
-merge a main ─► main.yml: todos los tests + build ─► crea release BORRADOR vX.Y.Z
+merge a main ─► main.yml: tests → lee commits → bump automático → draft release vX.Y.Z
 tú en GitHub ─► "Publish release" (lo marcás como release)
             └─► release.yml: build + firma + sube instaladores y latest.json
 app del usuario al abrir
             └─► consulta latest.json ─► "Actualización disponible" ─► instala y reinicia
 ```
+
+### Conventional Commits — cómo escribir mensajes de commit
+
+El tipo del commit determina automáticamente qué versión se bump-ea:
+
+| Prefijo | Tipo de cambio | Bump |
+|---------|---------------|------|
+| `fix:` | Corrección de bug | patch `0.2.0 → 0.2.1` |
+| `perf:` | Mejora de rendimiento | patch |
+| `feat:` | Nueva funcionalidad | minor `0.2.0 → 0.3.0` |
+| `feat!:` o `BREAKING CHANGE` | Cambio que rompe compatibilidad | major `0.2.0 → 1.0.0` |
+| `chore:`, `docs:`, `refactor:`, `test:`, `style:`, `ci:` | Mantenimiento | ninguno |
+
+Si un push a `main` solo contiene commits sin bump (`chore:`, etc.), no se crea ningún draft release.
+
+Si hay múltiples commits en un mismo push, gana el mayor: `feat:` + `fix:` → minor.
 
 > Nota: al publicar el release, queda visible unos minutos sin binarios hasta que
 > `release.yml` termina de compilar y los adjunta.
@@ -75,8 +92,7 @@ Piezas ya configuradas:
    > esa clave y tendrás que migrar la pubkey.
 
 3. **Publicá una versión:**
-   - Subí el número en `package.json` y `src-tauri/tauri.conf.json` (deben
-     coincidir, ej. `0.2.0`) y hacé merge a `main`.
+   - Escribí commits con prefijos convencionales (`fix:`, `feat:`, etc.) y hacé merge a `main`.
    - `main.yml` corre los tests y crea un **release en borrador** `v0.2.0`.
    - Andá a GitHub → Releases → editá el borrador y dale **"Publish release"**.
    - Eso dispara `release.yml`, que compila, firma y adjunta los instaladores y

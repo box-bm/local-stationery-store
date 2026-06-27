@@ -1,0 +1,66 @@
+name: Bump version (manual override)
+
+# Escape hatch for when you need to force a specific bump type
+# (e.g. to cut a major release without a breaking-change commit).
+#
+# Normal flow: main.yml auto-detects the bump from conventional commits.
+# Use this only when you need to override that behavior.
+#
+# Triggered from GitHub → Actions → "Bump version (manual override)" → Run workflow.
+on:
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: "Version bump type"
+        required: true
+        type: choice
+        default: patch
+        options:
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    name: Bump version (${{ inputs.bump_type }})
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # GITHUB_TOKEN lets the bot push back to main.
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Calculate new version
+        id: ver
+        run: |
+          CURRENT=$(node -p "require('./package.json').version")
+          NEW=$(node scripts/bump-version.cjs --dry-run ${{ inputs.bump_type }})
+          echo "current=$CURRENT" >> $GITHUB_OUTPUT
+          echo "new=$NEW"         >> $GITHUB_OUTPUT
+
+      - name: Apply version bump
+        run: node scripts/bump-version.cjs ${{ inputs.bump_type }}
+
+      - name: Commit and push
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml
+          git commit -m "chore: bump version ${{ steps.ver.outputs.current }} → ${{ steps.ver.outputs.new }}"
+          git push
+
+      - name: Summary
+        run: |
+          echo "### Version bumped" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**${{ steps.ver.outputs.current }}** → **${{ steps.ver.outputs.new }}** (${{ inputs.bump_type }})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "main.yml is now running tests and will create a draft release \`v${{ steps.ver.outputs.new }}\`." >> $GITHUB_STEP_SUMMARY
+          echo "Once tests pass, go to **Releases** and publish the draft to trigger the build." >> $GITHUB_STEP_SUMMARY

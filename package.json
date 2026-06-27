@@ -14,7 +14,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "bump": "node scripts/bump-version.cjs",
+    "next-version": "node scripts/next-version.cjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
