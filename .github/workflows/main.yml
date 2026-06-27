@@ -1,8 +1,12 @@
 name: Main
 
 # On merge/push to main: run the full test suite, then auto-determine the next
-# version from conventional commits, bump it, and create a draft release.
+# version from conventional commits and create a draft release.
 # Publishing that draft triggers the build & distribute workflow (release.yml).
+#
+# No commits are pushed back to main. The tag is created directly on the
+# current commit via gh release create. release.yml patches the version files
+# from the tag before building, so the repo files don't need to change here.
 on:
   push:
     branches: [main]
@@ -44,9 +48,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # Full history so next-version.cjs can reach the last tag.
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -63,38 +65,18 @@ jobs:
           NEXT=$(node scripts/next-version.cjs)
           echo "next=$NEXT" >> $GITHUB_OUTPUT
           if [ "$NEXT" = "none" ]; then
-            echo "No releasable commits found — skipping version bump and draft release."
+            echo "No releasable commits found — skipping draft release."
           else
-            CURRENT=$(node -p "require('./package.json').version")
-            echo "Bump: $CURRENT → $NEXT"
+            LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "none")
+            echo "Last tag: $LAST_TAG → next: $NEXT"
           fi
 
-      - name: Apply version bump
-        if: steps.ver.outputs.next != 'none'
-        run: node scripts/bump-version.cjs ${{ steps.ver.outputs.next }}
-
-      - name: Commit and push version bump
-        if: steps.ver.outputs.next != 'none'
-        run: |
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml
-          # Files may already be at the target version (e.g. manually pre-bumped).
-          # Only commit if there is actually something staged.
-          if git diff --cached --quiet; then
-            echo "Version files already at ${{ steps.ver.outputs.next }} — skipping commit."
-          else
-            git commit -m "chore: bump version to ${{ steps.ver.outputs.next }} [skip ci]"
-            git push
-          fi
-
-      - name: Create draft release
+      - name: Create tag and draft release
         if: steps.ver.outputs.next != 'none'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="v${{ steps.ver.outputs.next }}"
-          COMMIT=$(git rev-parse HEAD)
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo "Release $TAG already exists — leaving it as is."
           else
@@ -102,13 +84,14 @@ jobs:
               --draft \
               --title "Librería POS $TAG" \
               --generate-notes \
-              --target "$COMMIT"
+              --target "$GITHUB_SHA"
+            echo "Draft release $TAG created on $GITHUB_SHA."
           fi
 
       - name: Summary
         if: steps.ver.outputs.next != 'none'
         run: |
-          echo "### Draft release created" >> $GITHUB_STEP_SUMMARY
+          echo "### Draft release ready" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Version bumped to **v${{ steps.ver.outputs.next }}**." >> $GITHUB_STEP_SUMMARY
+          echo "Tag **v${{ steps.ver.outputs.next }}** created on this commit." >> $GITHUB_STEP_SUMMARY
           echo "Go to **Releases** on GitHub and publish the draft to trigger the build." >> $GITHUB_STEP_SUMMARY
