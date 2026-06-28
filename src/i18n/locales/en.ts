@@ -45,6 +45,7 @@ export const en: Record<TranslationKey, string> = {
   "pos.cart": "Cart",
   "pos.todayProfit": "Today's profit",
   "pos.cartProfit": "Total profit on this sale",
+  "pos.outOfStockBlocked": "{name} has no stock available. Restock it before selling.",
   "pos.cartEmpty": "The cart is empty",
   "pos.cartEmptyHint": "Search or scan a product to start",
   "pos.empty": "Clear",

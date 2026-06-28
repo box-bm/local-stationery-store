@@ -45,6 +45,7 @@ export const es = {
   "pos.cart": "Carrito",
   "pos.todayProfit": "Ganancias de hoy",
   "pos.cartProfit": "Total ganancias en esta venta",
+  "pos.outOfStockBlocked": "{name} no tiene stock disponible. Reabastecé antes de venderlo.",
   "pos.cartEmpty": "El carrito está vacío",
   "pos.cartEmptyHint": "Buscá o escaneá un producto para empezar",
   "pos.empty": "Vaciar",

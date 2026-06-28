@@ -18,7 +18,7 @@ import { useCartStore } from "@/stores/cart";
 import { toast } from "@/stores/toast";
 import { useT } from "@/i18n";
 import { stockStatus } from "@/lib/stock";
-import { formatQ, formatStock } from "@/lib/utils";
+import { formatQ, formatStock, cn } from "@/lib/utils";
 import type { ProductWithUnits, SellUnit } from "@/types";
 
 export function POSScreen() {
@@ -32,13 +32,15 @@ export function POSScreen() {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false); // overlay on narrow screens
   const [todayProfit, setTodayProfit] = useState(0);
+  const [refreshKey, setRefreshKey] = useState(0);
   const searchRef = useRef<HTMLInputElement>(null);
 
   const addItem = useCartStore((s) => s.addItem);
   const cartCount = useCartStore((s) => s.count());
   const cartTotal = useCartStore((s) => s.total());
 
-  // Load search results.
+  // Load search results — also reruns after a sale completes (refreshKey) so
+  // stock numbers and out-of-stock/low-stock states stay current.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -48,20 +50,21 @@ export function POSScreen() {
     return () => {
       cancelled = true;
     };
-  }, [debounced]);
+  }, [debounced, refreshKey]);
 
   useEffect(() => {
     listCategories().then(setCategories);
     searchRef.current?.focus();
   }, []);
 
-  // Refresh today's profit on mount and whenever the checkout closes (sale completed).
+  // Refresh today's profit and force a product/stock reload once checkout closes.
   useEffect(() => {
     if (checkoutOpen) return;
     const today = new Date();
     const tz = today.getTimezoneOffset() * 60000;
     const iso = new Date(today.getTime() - tz).toISOString().slice(0, 10);
     getSalesSummary({ from: iso, to: iso }).then((s) => setTodayProfit(s.profit));
+    setRefreshKey((k) => k + 1);
   }, [checkoutOpen]);
 
   const visible = useMemo(
@@ -157,13 +160,26 @@ export function POSScreen() {
               {visible.map((p) => {
                 const def =
                   p.sell_units.find((u) => u.is_default) ?? p.sell_units[0];
-                const out = stockStatus(p.stock, p.min_stock) === "out";
+                const status = stockStatus(p.stock, p.min_stock);
+                const out = status === "out";
                 return (
                   <button
                     key={p.id}
-                    onClick={() => setSelected(p)}
-                    disabled={out}
-                    className="flex flex-col rounded-xl border border-border bg-card p-3 text-left transition-all hover:border-primary hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 sm:p-4"
+                    onClick={() => {
+                      if (out) {
+                        toast.error(t("pos.outOfStockBlocked", { name: p.name }));
+                        return;
+                      }
+                      setSelected(p);
+                    }}
+                    className={cn(
+                      "flex flex-col rounded-xl border-2 bg-card p-3 text-left transition-all hover:shadow-md sm:p-4",
+                      out
+                        ? "border-destructive/60 opacity-60 hover:border-destructive"
+                        : status === "low"
+                          ? "border-warning/60 hover:border-warning"
+                          : "border-border hover:border-primary"
+                    )}
                   >
                     {/* Name gets full width — no competing badge */}
                     <p className="mb-1 line-clamp-2 font-medium leading-tight">
