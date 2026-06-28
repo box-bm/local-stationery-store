@@ -3,6 +3,7 @@ import {
   FileSpreadsheet,
   ChevronDown,
   ChevronRight,
+  ChevronLeft,
   Receipt,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,17 +11,22 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
   listSales,
+  countSales,
   getSaleItems,
   getSalesSummary,
+  getSalesSegments,
   type DateRange,
 } from "@/services/db";
 import { exportSales } from "@/services/excel";
 import { toast } from "@/stores/toast";
 import { useT, type TranslationKey } from "@/i18n";
 import { formatQ, formatDateTime, cn } from "@/lib/utils";
-import type { SaleItem, SaleWithItems } from "@/types";
+import type { SaleItem, SaleWithItems, SalesSegment, SalesSegmentGranularity } from "@/types";
 
 type Preset = "today" | "week" | "month" | "all" | "custom";
+type GroupBy = "list" | SalesSegmentGranularity;
+
+const PAGE_SIZE = 25;
 
 const PAYMENT_KEY: Record<string, TranslationKey> = {
   cash: "checkout.cash",
@@ -61,8 +67,13 @@ export function SalesScreen() {
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
 
+  const [groupBy, setGroupBy] = useState<GroupBy>("list");
+  const [page, setPage] = useState(1);
+
   const [sales, setSales] = useState<SaleWithItems[]>([]);
-  const [summary, setSummary] = useState({ count: 0, total: 0 });
+  const [totalSales, setTotalSales] = useState(0);
+  const [segments, setSegments] = useState<SalesSegment[]>([]);
+  const [summary, setSummary] = useState({ count: 0, total: 0, profit: 0 });
   const [expanded, setExpanded] = useState<number | null>(null);
   const [itemsCache, setItemsCache] = useState<Record<number, SaleItem[]>>({});
   const [loading, setLoading] = useState(true);
@@ -77,24 +88,39 @@ export function SalesScreen() {
     return presetRange(preset);
   }, [preset, customFrom, customTo]);
 
+  // Reset to page 1 whenever the filtered range or grouping changes.
+  useEffect(() => {
+    setPage(1);
+  }, [range, groupBy]);
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [s, sum] = await Promise.all([
-        listSales(range),
-        getSalesSummary(range),
-      ]);
-      setSales(s);
+      const sum = await getSalesSummary(range);
       setSummary(sum);
+
+      if (groupBy === "list") {
+        const [s, total] = await Promise.all([
+          listSales(range, { limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE }),
+          countSales(range),
+        ]);
+        setSales(s);
+        setTotalSales(total);
+      } else {
+        const segs = await getSalesSegments(range, groupBy);
+        setSegments(segs);
+      }
       setExpanded(null);
     } finally {
       setLoading(false);
     }
-  }, [range]);
+  }, [range, groupBy, page]);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  const totalPages = Math.max(1, Math.ceil(totalSales / PAGE_SIZE));
 
   async function toggleExpand(saleId: number) {
     if (expanded === saleId) {
@@ -123,6 +149,14 @@ export function SalesScreen() {
     { id: "month", labelKey: "sales.month" },
     { id: "all", labelKey: "sales.all" },
     { id: "custom", labelKey: "sales.custom" },
+  ];
+
+  const groupOptions: { id: GroupBy; labelKey: TranslationKey }[] = [
+    { id: "list", labelKey: "sales.list" },
+    { id: "day", labelKey: "sales.byDay" },
+    { id: "week", labelKey: "sales.byWeek" },
+    { id: "month", labelKey: "sales.byMonth" },
+    { id: "year", labelKey: "sales.byYear" },
   ];
 
   return (
@@ -171,6 +205,23 @@ export function SalesScreen() {
           </Button>
         </div>
 
+        {/* Group by */}
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+          <span className="mr-1 text-xs font-medium text-muted-foreground">
+            {t("sales.groupBy")}:
+          </span>
+          {groupOptions.map((g) => (
+            <Button
+              key={g.id}
+              size="sm"
+              variant={groupBy === g.id ? "default" : "outline"}
+              onClick={() => setGroupBy(g.id)}
+            >
+              {t(g.labelKey)}
+            </Button>
+          ))}
+        </div>
+
         {/* Summary */}
         <div className="mt-4 flex gap-4">
           <div className="rounded-lg border border-border bg-background px-4 py-2">
@@ -183,6 +234,12 @@ export function SalesScreen() {
               {formatQ(summary.total)}
             </p>
           </div>
+          <div className="rounded-lg border border-border bg-background px-4 py-2">
+            <p className="text-xs text-muted-foreground">{t("sales.profit")}</p>
+            <p className="text-xl font-bold text-emerald-600">
+              {formatQ(summary.profit)}
+            </p>
+          </div>
         </div>
       </div>
 
@@ -192,6 +249,46 @@ export function SalesScreen() {
           <p className="py-10 text-center text-muted-foreground">
             {t("common.loading")}
           </p>
+        ) : groupBy !== "list" ? (
+          segments.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+              <Receipt className="mb-3 h-12 w-12 opacity-30" />
+              <p>{t("sales.empty")}</p>
+            </div>
+          ) : (
+            <div className="overflow-hidden rounded-lg border border-border">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50 text-left text-xs uppercase text-muted-foreground">
+                  <tr>
+                    <th className="px-4 py-3 font-medium">{t("sales.period")}</th>
+                    <th className="px-4 py-3 text-right font-medium">
+                      {t("sales.count")}
+                    </th>
+                    <th className="px-4 py-3 text-right font-medium">
+                      {t("common.total")}
+                    </th>
+                    <th className="px-4 py-3 text-right font-medium">
+                      {t("sales.profit")}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {segments.map((seg) => (
+                    <tr key={seg.period}>
+                      <td className="px-4 py-3 font-medium">{seg.period}</td>
+                      <td className="px-4 py-3 text-right">{seg.count}</td>
+                      <td className="px-4 py-3 text-right font-semibold">
+                        {formatQ(seg.total)}
+                      </td>
+                      <td className="px-4 py-3 text-right font-semibold text-emerald-600">
+                        {formatQ(seg.profit)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )
         ) : sales.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
             <Receipt className="mb-3 h-12 w-12 opacity-30" />
@@ -306,6 +403,30 @@ export function SalesScreen() {
                 })}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {groupBy === "list" && totalSales > PAGE_SIZE && (
+          <div className="mt-4 flex items-center justify-center gap-3">
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={page <= 1}
+              onClick={() => setPage((p) => p - 1)}
+            >
+              <ChevronLeft className="h-4 w-4" /> {t("sales.prev")}
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              {t("sales.page", { page, total: totalPages })}
+            </span>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={page >= totalPages}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              {t("sales.next")} <ChevronRight className="h-4 w-4" />
+            </Button>
           </div>
         )}
       </div>

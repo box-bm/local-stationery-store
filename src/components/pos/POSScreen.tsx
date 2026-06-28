@@ -12,6 +12,7 @@ import {
   searchProductsWithUnits,
   getProductByBarcode,
   listCategories,
+  getSalesSummary,
 } from "@/services/db";
 import { useCartStore } from "@/stores/cart";
 import { toast } from "@/stores/toast";
@@ -30,6 +31,7 @@ export function POSScreen() {
   const [selected, setSelected] = useState<ProductWithUnits | null>(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false); // overlay on narrow screens
+  const [todayProfit, setTodayProfit] = useState(0);
   const searchRef = useRef<HTMLInputElement>(null);
 
   const addItem = useCartStore((s) => s.addItem);
@@ -52,6 +54,15 @@ export function POSScreen() {
     listCategories().then(setCategories);
     searchRef.current?.focus();
   }, []);
+
+  // Refresh today's profit on mount and whenever the checkout closes (sale completed).
+  useEffect(() => {
+    if (checkoutOpen) return;
+    const today = new Date();
+    const tz = today.getTimezoneOffset() * 60000;
+    const iso = new Date(today.getTime() - tz).toISOString().slice(0, 10);
+    getSalesSummary({ from: iso, to: iso }).then((s) => setTodayProfit(s.profit));
+  }, [checkoutOpen]);
 
   const visible = useMemo(
     () =>
@@ -112,9 +123,9 @@ export function POSScreen() {
             <ScanLine className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
           </div>
 
-          {/* Category filter — multi-select dropdown */}
-          {categories.length > 0 && (
-            <div className="mt-3 flex">
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+            {/* Category filter — multi-select dropdown */}
+            {categories.length > 0 && (
               <MultiSelect
                 className="w-56"
                 label={t("pos.categories")}
@@ -124,8 +135,13 @@ export function POSScreen() {
                 selected={selectedCats}
                 onChange={setSelectedCats}
               />
+            )}
+
+            <div className="rounded-lg border border-border bg-background px-3 py-1.5">
+              <p className="text-xs text-muted-foreground">{t("pos.todayProfit")}</p>
+              <p className="text-sm font-bold text-primary">{formatQ(todayProfit)}</p>
             </div>
-          )}
+          </div>
         </div>
 
         {/* Results grid — pb-24 on small screens reserves space for the floating cart FAB */}

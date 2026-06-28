@@ -57,11 +57,21 @@ export interface SaleItem {
   quantity: number;
   unit_price: number;
   subtotal: number;
+  cost_total: number;
 }
 
 export interface SaleWithItems extends Sale {
   items: SaleItem[];
   item_count: number;
+}
+
+export type SalesSegmentGranularity = "day" | "week" | "month" | "year";
+
+export interface SalesSegment {
+  period: string;
+  count: number;
+  total: number;
+  profit: number;
 }
 
 export type StockMovementType = "purchase" | "sale" | "adjustment";
