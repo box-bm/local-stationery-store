@@ -21,12 +21,11 @@ import { exportSales } from "@/services/excel";
 import { toast } from "@/stores/toast";
 import { useT, type TranslationKey } from "@/i18n";
 import { formatQ, formatDateTime, cn } from "@/lib/utils";
+import { useSettingsStore } from "@/stores/settings";
 import type { SaleItem, SaleWithItems, SalesSegment, SalesSegmentGranularity } from "@/types";
 
 type Preset = "today" | "week" | "month" | "all" | "custom";
 type GroupBy = "list" | SalesSegmentGranularity;
-
-const PAGE_SIZE = 25;
 
 const PAYMENT_KEY: Record<string, TranslationKey> = {
   cash: "checkout.cash",
@@ -63,6 +62,7 @@ function presetRange(preset: Preset): DateRange {
 
 export function SalesScreen() {
   const t = useT();
+  const pageSize = useSettingsStore((s) => s.salesPageSize);
   const [preset, setPreset] = useState<Preset>("today");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
@@ -88,10 +88,10 @@ export function SalesScreen() {
     return presetRange(preset);
   }, [preset, customFrom, customTo]);
 
-  // Reset to page 1 whenever the filtered range or grouping changes.
+  // Reset to page 1 whenever the filtered range, grouping, or page size changes.
   useEffect(() => {
     setPage(1);
-  }, [range, groupBy]);
+  }, [range, groupBy, pageSize]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -101,7 +101,7 @@ export function SalesScreen() {
 
       if (groupBy === "list") {
         const [s, total] = await Promise.all([
-          listSales(range, { limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE }),
+          listSales(range, { limit: pageSize, offset: (page - 1) * pageSize }),
           countSales(range),
         ]);
         setSales(s);
@@ -114,13 +114,13 @@ export function SalesScreen() {
     } finally {
       setLoading(false);
     }
-  }, [range, groupBy, page]);
+  }, [range, groupBy, page, pageSize]);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  const totalPages = Math.max(1, Math.ceil(totalSales / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(totalSales / pageSize));
 
   async function toggleExpand(saleId: number) {
     if (expanded === saleId) {
@@ -406,7 +406,7 @@ export function SalesScreen() {
           </div>
         )}
 
-        {groupBy === "list" && totalSales > PAGE_SIZE && (
+        {groupBy === "list" && totalSales > pageSize && (
           <div className="mt-4 flex items-center justify-center gap-3">
             <Button
               size="sm"

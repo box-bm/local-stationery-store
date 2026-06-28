@@ -265,6 +265,10 @@ export const es = {
   // Payment methods (settings)
   "settings.payments": "Métodos de pago",
   "settings.paymentsHint": "Activá los métodos disponibles al momento de cobrar.",
+  "settings.sales": "Ventas",
+  "settings.salesPageSize": "Ventas por página",
+  "settings.salesPageSizeHint": "Cuántas ventas mostrar por página en la pantalla de Ventas. Valores altos cargan más datos a la vez.",
+  "settings.salesPageSizeWarning": "Un valor alto puede hacer que la pantalla de Ventas cargue lento si hay muchas ventas.",
 
   // Checkout (extra)
   "checkout.reference": "Código de autorización",

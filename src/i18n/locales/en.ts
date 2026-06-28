@@ -265,6 +265,10 @@ export const en: Record<TranslationKey, string> = {
   // Payment methods (settings)
   "settings.payments": "Payment methods",
   "settings.paymentsHint": "Enable the methods available at checkout.",
+  "settings.sales": "Sales",
+  "settings.salesPageSize": "Sales per page",
+  "settings.salesPageSizeHint": "How many sales to show per page in the Ventas screen. Higher values load more data at once.",
+  "settings.salesPageSizeWarning": "A high value may make the Ventas screen load slowly when there are many sales.",
 
   // Checkout (extra)
   "checkout.reference": "Authorization code",

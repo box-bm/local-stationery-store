@@ -549,7 +549,7 @@ export async function listSales(
      ${clause}
      GROUP BY s.id
      ORDER BY s.created_at DESC`;
-  const allParams = [...params];
+  const allParams: (string | number)[] = [...params];
   if (pagination) {
     allParams.push(pagination.limit, pagination.offset);
     sql += ` LIMIT $${allParams.length - 1} OFFSET $${allParams.length}`;

@@ -16,11 +16,18 @@ import {
   Check,
   Tags,
   Upload,
+  AlertTriangle,
+  Receipt,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useSettingsStore, type ThemeMode } from "@/stores/settings";
+import {
+  useSettingsStore,
+  SALES_PAGE_SIZE_OPTIONS,
+  SALES_PAGE_SIZE_WARNING_THRESHOLD,
+  type ThemeMode,
+} from "@/stores/settings";
 import { useT } from "@/i18n";
 import type { Lang } from "@/i18n";
 import { toast } from "@/stores/toast";
@@ -249,6 +256,29 @@ export function SettingsScreen({ onShowGuide }: Props) {
           <p className="text-xs text-muted-foreground">
             {t("settings.paymentsHint")}
           </p>
+        </Section>
+
+        {/* Sales list */}
+        <Section icon={Receipt} title={t("settings.sales")}>
+          <Row label={t("settings.salesPageSize")}>
+            <SegGroup
+              options={SALES_PAGE_SIZE_OPTIONS.map((n) => ({
+                id: String(n),
+                label: String(n),
+              }))}
+              value={String(s.salesPageSize)}
+              onChange={(v) => s.setSalesPageSize(Number(v))}
+            />
+          </Row>
+          <p className="text-xs text-muted-foreground">
+            {t("settings.salesPageSizeHint")}
+          </p>
+          {s.salesPageSize >= SALES_PAGE_SIZE_WARNING_THRESHOLD && (
+            <p className="flex items-center gap-1.5 text-sm text-amber-600">
+              <AlertTriangle className="h-4 w-4" />
+              {t("settings.salesPageSizeWarning")}
+            </p>
+          )}
         </Section>
 
         {/* Data & backups */}
