@@ -44,6 +44,7 @@ export const en: Record<TranslationKey, string> = {
   "pos.stock": "Stock",
   "pos.cart": "Cart",
   "pos.todayProfit": "Today's profit",
+  "pos.cartProfit": "Total profit on this sale",
   "pos.cartEmpty": "The cart is empty",
   "pos.cartEmptyHint": "Search or scan a product to start",
   "pos.empty": "Clear",

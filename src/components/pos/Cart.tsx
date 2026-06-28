@@ -10,7 +10,8 @@ interface Props {
 
 export function Cart({ onCheckout }: Props) {
   const t = useT();
-  const { items, removeItem, updateQuantity, clear, total } = useCartStore();
+  const { items, removeItem, updateQuantity, clear, total, profit } =
+    useCartStore();
   const isEmpty = items.length === 0;
 
   return (
@@ -95,9 +96,17 @@ export function Cart({ onCheckout }: Props) {
       </div>
 
       <div className="border-t border-border p-4">
-        <div className="mb-3 flex items-end justify-between">
+        <div className="mb-1 flex items-end justify-between">
           <span className="text-sm text-muted-foreground">{t("common.total")}</span>
           <span className="text-3xl font-bold">{formatQ(total())}</span>
+        </div>
+        <div className="mb-3 flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">
+            {t("pos.cartProfit")}
+          </span>
+          <span className="text-sm font-semibold text-emerald-600">
+            {formatQ(profit())}
+          </span>
         </div>
         <Button
           size="xl"
