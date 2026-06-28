@@ -23,6 +23,9 @@ export interface SettingsState {
 
   onboardingDone: boolean;
 
+  /** Rows per page in the Ventas list. */
+  salesPageSize: number;
+
   setLanguage: (l: Lang) => void;
   setTheme: (t: ThemeMode) => void;
   setCurrency: (symbol: string, code: string) => void;
@@ -30,7 +33,12 @@ export interface SettingsState {
   setLock: (enabled: boolean, hash: string | null) => void;
   setPaymentMethod: (id: PaymentMethodId, enabled: boolean) => void;
   setOnboardingDone: (done: boolean) => void;
+  setSalesPageSize: (size: number) => void;
 }
+
+/** Page sizes offered in Settings; sizes above this are flagged as risky for performance. */
+export const SALES_PAGE_SIZE_OPTIONS = [25, 50, 100, 250] as const;
+export const SALES_PAGE_SIZE_WARNING_THRESHOLD = 250;
 
 const KEY = "libreria-settings";
 
@@ -44,6 +52,7 @@ interface Persisted {
   lockHash: string | null;
   paymentMethods: PaymentMethods;
   onboardingDone: boolean;
+  salesPageSize: number;
 }
 
 const DEFAULTS: Persisted = {
@@ -56,6 +65,7 @@ const DEFAULTS: Persisted = {
   lockHash: null,
   paymentMethods: { cash: true, transfer: true },
   onboardingDone: false,
+  salesPageSize: 50,
 };
 
 function load(): Persisted {
@@ -101,6 +111,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => {
       lockHash: s.lockHash,
       paymentMethods: s.paymentMethods,
       onboardingDone: s.onboardingDone,
+      salesPageSize: s.salesPageSize,
     };
   }
 
@@ -144,6 +155,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => {
     setOnboardingDone: (onboardingDone) => {
       set({ onboardingDone });
       persist({ ...snapshot(), onboardingDone });
+    },
+
+    setSalesPageSize: (salesPageSize) => {
+      set({ salesPageSize });
+      persist({ ...snapshot(), salesPageSize });
     },
   };
 });

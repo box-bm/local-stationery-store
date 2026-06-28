@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { cartTotal } from "@/lib/calc";
+import { cartTotal, cartProfit } from "@/lib/calc";
 import type { CartItem, Product, SellUnit } from "@/types";
 
 interface CartState {
@@ -9,6 +9,7 @@ interface CartState {
   updateQuantity: (index: number, quantity: number) => void;
   clear: () => void;
   total: () => number;
+  profit: () => number;
   count: () => number;
 }
 
@@ -48,6 +49,8 @@ export const useCartStore = create<CartState>((set, get) => ({
   clear: () => set({ items: [] }),
 
   total: () => cartTotal(get().items),
+
+  profit: () => cartProfit(get().items),
 
   count: () => get().items.reduce((sum, it) => sum + it.quantity, 0),
 }));

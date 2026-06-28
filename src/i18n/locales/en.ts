@@ -43,6 +43,9 @@ export const en: Record<TranslationKey, string> = {
   "pos.outOfStock": "Out of stock",
   "pos.stock": "Stock",
   "pos.cart": "Cart",
+  "pos.todayProfit": "Today's profit",
+  "pos.cartProfit": "Total profit on this sale",
+  "pos.outOfStockBlocked": "{name} has no stock available. Restock it before selling.",
   "pos.cartEmpty": "The cart is empty",
   "pos.cartEmptyHint": "Search or scan a product to start",
   "pos.empty": "Clear",
@@ -166,6 +169,17 @@ export const en: Record<TranslationKey, string> = {
   "sales.empty": "No sales in this period",
   "sales.note": "Note: {note}",
   "sales.exported": "Sales exported to Excel",
+  "sales.profit": "Profit",
+  "sales.groupBy": "Group by",
+  "sales.list": "List",
+  "sales.byDay": "Day",
+  "sales.byWeek": "Week",
+  "sales.byMonth": "Month",
+  "sales.byYear": "Year",
+  "sales.period": "Period",
+  "sales.prev": "Previous",
+  "sales.next": "Next",
+  "sales.page": "Page {page} of {total}",
 
   // Settings
   "settings.title": "Settings",
@@ -253,6 +267,10 @@ export const en: Record<TranslationKey, string> = {
   // Payment methods (settings)
   "settings.payments": "Payment methods",
   "settings.paymentsHint": "Enable the methods available at checkout.",
+  "settings.sales": "Sales",
+  "settings.salesPageSize": "Sales per page",
+  "settings.salesPageSizeHint": "How many sales to show per page in the Ventas screen. Higher values load more data at once.",
+  "settings.salesPageSizeWarning": "A high value may make the Ventas screen load slowly when there are many sales.",
 
   // Checkout (extra)
   "checkout.reference": "Authorization code",

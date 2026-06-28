@@ -115,6 +115,10 @@ ALTER TABLE sales ADD COLUMN payment_reference TEXT;
 CREATE INDEX IF NOT EXISTS idx_customers_name ON customers(name);
 "#;
 
+const SALE_ITEM_COST: &str = r#"
+ALTER TABLE sale_items ADD COLUMN cost_total REAL NOT NULL DEFAULT 0;
+"#;
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let migrations = vec![
@@ -134,6 +138,12 @@ pub fn run() {
             version: 3,
             description: "customers_and_sale_fields",
             sql: CUSTOMERS_AND_SALE_FIELDS,
+            kind: MigrationKind::Up,
+        },
+        Migration {
+            version: 4,
+            description: "sale_items_cost_total",
+            sql: SALE_ITEM_COST,
             kind: MigrationKind::Up,
         },
     ];

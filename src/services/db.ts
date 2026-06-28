@@ -9,6 +9,8 @@ import type {
   Sale,
   SaleItem,
   SaleWithItems,
+  SalesSegment,
+  SalesSegmentGranularity,
   SellUnit,
   StockMovement,
   CartItem,
@@ -463,10 +465,14 @@ export async function completeSale(
 
   for (const item of cart) {
     const subtotal = lineSubtotal(item.sellUnit.sell_price, item.quantity);
+    const costTotal =
+      item.product.purchase_price *
+      item.sellUnit.quantity_in_base_units *
+      item.quantity;
     await db.execute(
       `INSERT INTO sale_items
-         (sale_id, product_id, sell_unit_id, product_name, sell_unit_name, quantity, unit_price, subtotal)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+         (sale_id, product_id, sell_unit_id, product_name, sell_unit_name, quantity, unit_price, subtotal, cost_total)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
       [
         saleId,
         item.product.id,
@@ -476,6 +482,7 @@ export async function completeSale(
         item.quantity,
         item.sellUnit.sell_price,
         subtotal,
+        costTotal,
       ]
     );
 
@@ -525,19 +532,44 @@ function dateWhere(range?: DateRange): { clause: string; params: string[] } {
   };
 }
 
-export async function listSales(range?: DateRange): Promise<SaleWithItems[]> {
+export interface Pagination {
+  limit: number;
+  offset: number;
+}
+
+export async function listSales(
+  range?: DateRange,
+  pagination?: Pagination
+): Promise<SaleWithItems[]> {
   const db = await getDb();
   const { clause, params } = dateWhere(range);
-  const sales = await db.select<(Sale & { item_count: number })[]>(
-    `SELECT s.*, COALESCE(SUM(si.quantity), 0) AS item_count
+  let sql = `SELECT s.*, COALESCE(SUM(si.quantity), 0) AS item_count
      FROM sales s
      LEFT JOIN sale_items si ON si.sale_id = s.id
      ${clause}
      GROUP BY s.id
-     ORDER BY s.created_at DESC`,
-    params
+     ORDER BY s.created_at DESC`;
+  const allParams: (string | number)[] = [...params];
+  if (pagination) {
+    allParams.push(pagination.limit, pagination.offset);
+    sql += ` LIMIT $${allParams.length - 1} OFFSET $${allParams.length}`;
+  }
+  const sales = await db.select<(Sale & { item_count: number })[]>(
+    sql,
+    allParams
   );
   return sales.map((s) => ({ ...s, items: [], item_count: s.item_count }));
+}
+
+/** Count of sales matching a date range, for pagination controls. */
+export async function countSales(range?: DateRange): Promise<number> {
+  const db = await getDb();
+  const { clause, params } = dateWhere(range);
+  const rows = await db.select<{ count: number }[]>(
+    `SELECT COUNT(*) AS count FROM sales ${clause}`,
+    params
+  );
+  return rows[0]?.count ?? 0;
 }
 
 export async function getSaleItems(saleId: number): Promise<SaleItem[]> {
@@ -550,14 +582,59 @@ export async function getSaleItems(saleId: number): Promise<SaleItem[]> {
 
 export async function getSalesSummary(
   range?: DateRange
-): Promise<{ count: number; total: number }> {
+): Promise<{ count: number; total: number; profit: number }> {
   const db = await getDb();
   const { clause, params } = dateWhere(range);
-  const rows = await db.select<{ count: number; total: number }[]>(
-    `SELECT COUNT(*) AS count, COALESCE(SUM(total), 0) AS total FROM sales ${clause}`,
+  const rows = await db.select<{ count: number; total: number; cost: number }[]>(
+    `SELECT COUNT(*) AS count, COALESCE(SUM(s.total), 0) AS total,
+            COALESCE(SUM(
+              (SELECT SUM(si.cost_total) FROM sale_items si WHERE si.sale_id = s.id)
+            ), 0) AS cost
+     FROM sales s ${clause}`,
     params
   );
-  return rows[0] ?? { count: 0, total: 0 };
+  const r = rows[0] ?? { count: 0, total: 0, cost: 0 };
+  return { count: r.count, total: r.total, profit: r.total - r.cost };
+}
+
+const SEGMENT_FORMAT: Record<SalesSegmentGranularity, string> = {
+  day: "%Y-%m-%d",
+  week: "%Y-W%W",
+  month: "%Y-%m",
+  year: "%Y",
+};
+
+/** Sales aggregated into day/week/month/year buckets, most recent first. */
+export async function getSalesSegments(
+  range: DateRange | undefined,
+  granularity: SalesSegmentGranularity
+): Promise<SalesSegment[]> {
+  const db = await getDb();
+  const { clause, params } = dateWhere(range);
+  const fmt = SEGMENT_FORMAT[granularity];
+  const rows = await db.select<
+    { period: string; count: number; total: number; cost: number }[]
+  >(
+    `SELECT period, COUNT(*) AS count, SUM(sale_total) AS total, SUM(sale_cost) AS cost
+     FROM (
+       SELECT strftime('${fmt}', s.created_at) AS period,
+              s.total AS sale_total,
+              COALESCE(
+                (SELECT SUM(si.cost_total) FROM sale_items si WHERE si.sale_id = s.id), 0
+              ) AS sale_cost
+       FROM sales s
+       ${clause}
+     )
+     GROUP BY period
+     ORDER BY period DESC`,
+    params
+  );
+  return rows.map((r) => ({
+    period: r.period,
+    count: r.count,
+    total: r.total,
+    profit: r.total - r.cost,
+  }));
 }
 
 // ---------------------------------------------------------------------------

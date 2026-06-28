@@ -43,6 +43,9 @@ export const es = {
   "pos.outOfStock": "Agotado",
   "pos.stock": "Stock",
   "pos.cart": "Carrito",
+  "pos.todayProfit": "Ganancias de hoy",
+  "pos.cartProfit": "Total ganancias en esta venta",
+  "pos.outOfStockBlocked": "{name} no tiene stock disponible. Reabastecé antes de venderlo.",
   "pos.cartEmpty": "El carrito está vacío",
   "pos.cartEmptyHint": "Buscá o escaneá un producto para empezar",
   "pos.empty": "Vaciar",
@@ -166,6 +169,17 @@ export const es = {
   "sales.empty": "No hay ventas en este período",
   "sales.note": "Nota: {note}",
   "sales.exported": "Ventas exportadas a Excel",
+  "sales.profit": "Ganancias",
+  "sales.groupBy": "Agrupar por",
+  "sales.list": "Lista",
+  "sales.byDay": "Día",
+  "sales.byWeek": "Semana",
+  "sales.byMonth": "Mes",
+  "sales.byYear": "Año",
+  "sales.period": "Período",
+  "sales.prev": "Anterior",
+  "sales.next": "Siguiente",
+  "sales.page": "Página {page} de {total}",
 
   // Settings
   "settings.title": "Configuración",
@@ -253,6 +267,10 @@ export const es = {
   // Payment methods (settings)
   "settings.payments": "Métodos de pago",
   "settings.paymentsHint": "Activá los métodos disponibles al momento de cobrar.",
+  "settings.sales": "Ventas",
+  "settings.salesPageSize": "Ventas por página",
+  "settings.salesPageSizeHint": "Cuántas ventas mostrar por página en la pantalla de Ventas. Valores altos cargan más datos a la vez.",
+  "settings.salesPageSizeWarning": "Un valor alto puede hacer que la pantalla de Ventas cargue lento si hay muchas ventas.",
 
   // Checkout (extra)
   "checkout.reference": "Código de autorización",
