@@ -183,6 +183,8 @@ export const es = {
 
   // Settings
   "settings.title": "Configuración",
+  "settings.tabGeneral": "General",
+  "settings.tabAbout": "Acerca de",
   "settings.appearance": "Apariencia",
   "settings.theme": "Tema",
   "settings.themeLight": "Claro",
@@ -209,6 +211,8 @@ export const es = {
   "settings.exportSales": "Ventas",
   "settings.exportMovements": "Movimientos de stock",
   "settings.movementsExported": "Movimientos exportados a Excel",
+  "settings.exportGeneral": "General",
+  "settings.generalExported": "Reporte general exportado a Excel",
   "settings.security": "Seguridad",
   "settings.lock": "Bloqueo con contraseña",
   "settings.lockHint":
@@ -297,7 +301,6 @@ export const es = {
   // Categories & customers maintenance (settings)
   "settings.catalog": "Categorías y clientes",
   "settings.catalogHint": "Renombrá, eliminá o fusioná categorías y clientes.",
-  "settings.manageCatalog": "Gestionar categorías y clientes",
   "settings.catalogEmpty": "No hay elementos todavía.",
   "settings.catalogCount": "{count} producto(s)",
   "settings.catalogSales": "{count} venta(s)",

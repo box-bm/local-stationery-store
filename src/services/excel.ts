@@ -51,13 +51,17 @@ function sheetFromRows(
 
 const stamp = () => new Date().toISOString().slice(0, 10);
 
+interface NamedSheet {
+  name: string;
+  rows: Record<string, unknown>[];
+}
+
 // ---------------------------------------------------------------------------
 // Inventory report
 // ---------------------------------------------------------------------------
 
-export async function exportInventory(): Promise<boolean> {
+async function buildInventorySheets(): Promise<NamedSheet[]> {
   const products = await listProducts();
-  const wb = XLSX.utils.book_new();
 
   const productRows: Record<string, unknown>[] = [];
   const unitRows: Record<string, unknown>[] = [];
@@ -89,9 +93,17 @@ export async function exportInventory(): Promise<boolean> {
     }
   }
 
-  sheetFromRows(wb, "Inventario", productRows);
-  sheetFromRows(wb, "Unidades de venta", unitRows);
+  return [
+    { name: "Inventario", rows: productRows },
+    { name: "Unidades de venta", rows: unitRows },
+  ];
+}
 
+export async function exportInventory(): Promise<boolean> {
+  const wb = XLSX.utils.book_new();
+  for (const { name, rows } of await buildInventorySheets()) {
+    sheetFromRows(wb, name, rows);
+  }
   return saveWorkbook(wb, `inventario_${stamp()}.xlsx`);
 }
 
@@ -99,9 +111,8 @@ export async function exportInventory(): Promise<boolean> {
 // Sales report
 // ---------------------------------------------------------------------------
 
-export async function exportSales(range?: DateRange): Promise<boolean> {
+async function buildSalesSheets(range?: DateRange): Promise<NamedSheet[]> {
   const sales = await listSales(range);
-  const wb = XLSX.utils.book_new();
 
   const saleRows: Record<string, unknown>[] = [];
   const itemRows: Record<string, unknown>[] = [];
@@ -132,9 +143,17 @@ export async function exportSales(range?: DateRange): Promise<boolean> {
     }
   }
 
-  sheetFromRows(wb, "Ventas", saleRows);
-  sheetFromRows(wb, "Detalle", itemRows);
+  return [
+    { name: "Ventas", rows: saleRows },
+    { name: "Detalle", rows: itemRows },
+  ];
+}
 
+export async function exportSales(range?: DateRange): Promise<boolean> {
+  const wb = XLSX.utils.book_new();
+  for (const { name, rows } of await buildSalesSheets(range)) {
+    sheetFromRows(wb, name, rows);
+  }
   return saveWorkbook(wb, `ventas_${stamp()}.xlsx`);
 }
 
@@ -148,11 +167,8 @@ const MOVEMENT_LABEL: Record<string, string> = {
   adjustment: "Ajuste",
 };
 
-export async function exportStockMovements(
-  range?: DateRange
-): Promise<boolean> {
+async function buildStockMovementSheets(range?: DateRange): Promise<NamedSheet[]> {
   const movements = await listStockMovements(range);
-  const wb = XLSX.utils.book_new();
 
   const rows = movements.map((m) => ({
     ID: m.id,
@@ -164,6 +180,32 @@ export async function exportStockMovements(
     Notas: m.notes ?? "",
   }));
 
-  sheetFromRows(wb, "Movimientos", rows);
+  return [{ name: "Movimientos", rows }];
+}
+
+export async function exportStockMovements(
+  range?: DateRange
+): Promise<boolean> {
+  const wb = XLSX.utils.book_new();
+  for (const { name, rows } of await buildStockMovementSheets(range)) {
+    sheetFromRows(wb, name, rows);
+  }
   return saveWorkbook(wb, `movimientos_${stamp()}.xlsx`);
+}
+
+// ---------------------------------------------------------------------------
+// General report — inventory, sales, and stock movements combined
+// ---------------------------------------------------------------------------
+
+export async function exportGeneral(): Promise<boolean> {
+  const wb = XLSX.utils.book_new();
+  const sheets = [
+    ...(await buildInventorySheets()),
+    ...(await buildSalesSheets()),
+    ...(await buildStockMovementSheets()),
+  ];
+  for (const { name, rows } of sheets) {
+    sheetFromRows(wb, name, rows);
+  }
+  return saveWorkbook(wb, `general_${stamp()}.xlsx`);
 }

@@ -183,6 +183,8 @@ export const en: Record<TranslationKey, string> = {
 
   // Settings
   "settings.title": "Settings",
+  "settings.tabGeneral": "General",
+  "settings.tabAbout": "About",
   "settings.appearance": "Appearance",
   "settings.theme": "Theme",
   "settings.themeLight": "Light",
@@ -209,6 +211,8 @@ export const en: Record<TranslationKey, string> = {
   "settings.exportSales": "Sales",
   "settings.exportMovements": "Stock movements",
   "settings.movementsExported": "Movements exported to Excel",
+  "settings.exportGeneral": "General",
+  "settings.generalExported": "General report exported to Excel",
   "settings.security": "Security",
   "settings.lock": "Password lock",
   "settings.lockHint":
@@ -296,7 +300,6 @@ export const en: Record<TranslationKey, string> = {
   // Categories & customers maintenance (settings)
   "settings.catalog": "Categories & customers",
   "settings.catalogHint": "Rename, delete, or merge categories and customers.",
-  "settings.manageCatalog": "Manage categories & customers",
   "settings.catalogEmpty": "Nothing here yet.",
   "settings.catalogCount": "{count} product(s)",
   "settings.catalogSales": "{count} sale(s)",
