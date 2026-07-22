@@ -31,6 +31,16 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/** Extracts Google's `error`/`error_description` from a failed response body. */
+async function errorDetail(res: Response): Promise<string> {
+  try {
+    const data = await res.json();
+    return [data.error, data.error_description].filter(Boolean).join(": ");
+  } catch {
+    return `HTTP ${res.status}`;
+  }
+}
+
 export async function requestDeviceCode(): Promise<DeviceCodeInfo> {
   const res = await fetch("https://oauth2.googleapis.com/device/code", {
     method: "POST",
@@ -39,7 +49,7 @@ export async function requestDeviceCode(): Promise<DeviceCodeInfo> {
   });
   if (!res.ok) {
     throw new GoogleAuthError(
-      `No se pudo iniciar la conexión con Google (${res.status})`
+      `No se pudo iniciar la conexión con Google (${await errorDetail(res)})`
     );
   }
   const data = await res.json();
@@ -92,10 +102,15 @@ export async function pollForToken(
       intervalMs += 5000;
       continue;
     }
+    if (data.error === "access_denied") {
+      throw new GoogleAuthError("Conexión cancelada");
+    }
+    if (data.error === "expired_token") {
+      throw new GoogleAuthError("El código expiró, intenta de nuevo");
+    }
     throw new GoogleAuthError(
-      data.error === "access_denied"
-        ? "Conexión cancelada"
-        : "El código expiró, intenta de nuevo"
+      [data.error, data.error_description].filter(Boolean).join(": ") ||
+        `HTTP ${res.status}`
     );
   }
   throw new GoogleAuthError("El código expiró, intenta de nuevo");
@@ -115,7 +130,9 @@ export async function refreshAccessToken(
     }).toString(),
   });
   if (!res.ok) {
-    throw new GoogleAuthError("No se pudo renovar la sesión de Google");
+    throw new GoogleAuthError(
+      `No se pudo renovar la sesión de Google (${await errorDetail(res)})`
+    );
   }
   const data = await res.json();
   return { accessToken: data.access_token, expiresInSec: data.expires_in };
