@@ -123,21 +123,66 @@ ALTER TABLE sale_items ADD COLUMN cost_total REAL NOT NULL DEFAULT 0;
 // hex string generated in pure SQL) so rows have a stable identity that
 // survives a whole-file Google Drive sync across multiple devices. SQLite
 // can't ALTER a column's type or drop AUTOINCREMENT, so each table is
-// recreated via a temporary old-id -> new-uuid mapping table.
+// recreated from scratch.
 //
 // `sales` additionally gains `sale_number`, seeded from the old integer id,
 // because sale numbers are customer/clerk-facing (receipts, sales list,
 // Excel export) and a UUID there would be unusable printed on a receipt.
+//
+// IMPORTANT: tauri-plugin-sql runs every migration through sqlx's migrator,
+// which always wraps it in a single transaction (no_tx is hardcoded false —
+// there's no way to opt out from this crate's API). SQLite treats
+// "PRAGMA foreign_keys=OFF" as a no-op once a transaction has begun, so
+// enforcement stays ON for the whole migration regardless of the pragma
+// below. That means `DROP TABLE products` while `sell_units`/`sale_items`/
+// `stock_movements` (whose product_id/sale_id FKs don't all cascade) still
+// exist fails with "FOREIGN KEY constraint failed" (reproduced locally: it
+// fails even on a freshly-seeded, untouched database). To work correctly
+// under enforcement, this snapshots every table into plain unconstrained
+// temp tables first, drops the originals leaf-to-root (so nothing live
+// ever still references the table being dropped), then recreates them
+// root-to-leaf from the snapshots.
 const UUID_PRIMARY_KEYS: &str = r#"
 PRAGMA foreign_keys = OFF;
 
--- products
+CREATE TABLE _snap_products AS SELECT * FROM products;
+CREATE TABLE _snap_customers AS SELECT * FROM customers;
+CREATE TABLE _snap_sell_units AS SELECT * FROM sell_units;
+CREATE TABLE _snap_sales AS SELECT * FROM sales;
+CREATE TABLE _snap_sale_items AS SELECT * FROM sale_items;
+CREATE TABLE _snap_stock_movements AS SELECT * FROM stock_movements;
+
 CREATE TABLE _id_map_products (old_id INTEGER PRIMARY KEY, new_id TEXT NOT NULL);
 INSERT INTO _id_map_products
   SELECT id, lower(hex(randomblob(4)))||'-'||lower(hex(randomblob(2)))||'-4'||substr(lower(hex(randomblob(2))),2)||'-'||substr('89ab',abs(random())%4+1,1)||substr(lower(hex(randomblob(2))),2)||'-'||lower(hex(randomblob(6)))
-  FROM products;
+  FROM _snap_products;
 
-CREATE TABLE products_new (
+CREATE TABLE _id_map_customers (old_id INTEGER PRIMARY KEY, new_id TEXT NOT NULL);
+INSERT INTO _id_map_customers
+  SELECT id, lower(hex(randomblob(4)))||'-'||lower(hex(randomblob(2)))||'-4'||substr(lower(hex(randomblob(2))),2)||'-'||substr('89ab',abs(random())%4+1,1)||substr(lower(hex(randomblob(2))),2)||'-'||lower(hex(randomblob(6)))
+  FROM _snap_customers;
+
+CREATE TABLE _id_map_sell_units (old_id INTEGER PRIMARY KEY, new_id TEXT NOT NULL);
+INSERT INTO _id_map_sell_units
+  SELECT id, lower(hex(randomblob(4)))||'-'||lower(hex(randomblob(2)))||'-4'||substr(lower(hex(randomblob(2))),2)||'-'||substr('89ab',abs(random())%4+1,1)||substr(lower(hex(randomblob(2))),2)||'-'||lower(hex(randomblob(6)))
+  FROM _snap_sell_units;
+
+CREATE TABLE _id_map_sales (old_id INTEGER PRIMARY KEY, new_id TEXT NOT NULL);
+INSERT INTO _id_map_sales
+  SELECT id, lower(hex(randomblob(4)))||'-'||lower(hex(randomblob(2)))||'-4'||substr(lower(hex(randomblob(2))),2)||'-'||substr('89ab',abs(random())%4+1,1)||substr(lower(hex(randomblob(2))),2)||'-'||lower(hex(randomblob(6)))
+  FROM _snap_sales;
+
+-- Drop originals leaf-to-root: nothing left references the table being
+-- dropped, so this is safe even with foreign_keys enforcement ON.
+DROP TABLE sale_items;
+DROP TABLE stock_movements;
+DROP TABLE sell_units;
+DROP TABLE sales;
+DROP TABLE products;
+DROP TABLE customers;
+
+-- Recreate root-to-leaf, populated from the snapshots + id maps.
+CREATE TABLE products (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   description TEXT,
@@ -151,37 +196,21 @@ CREATE TABLE products_new (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
-INSERT INTO products_new
-  SELECT m.new_id, p.name, p.description, p.barcode, p.category, p.base_unit_name,
-         p.base_unit_quantity, p.purchase_price, p.stock, p.min_stock, p.created_at, p.updated_at
-  FROM products p JOIN _id_map_products m ON m.old_id = p.id;
-DROP TABLE products;
-ALTER TABLE products_new RENAME TO products;
+INSERT INTO products
+  SELECT m.new_id, s.name, s.description, s.barcode, s.category, s.base_unit_name,
+         s.base_unit_quantity, s.purchase_price, s.stock, s.min_stock, s.created_at, s.updated_at
+  FROM _snap_products s JOIN _id_map_products m ON m.old_id = s.id;
 
--- customers
-CREATE TABLE _id_map_customers (old_id INTEGER PRIMARY KEY, new_id TEXT NOT NULL);
-INSERT INTO _id_map_customers
-  SELECT id, lower(hex(randomblob(4)))||'-'||lower(hex(randomblob(2)))||'-4'||substr(lower(hex(randomblob(2))),2)||'-'||substr('89ab',abs(random())%4+1,1)||substr(lower(hex(randomblob(2))),2)||'-'||lower(hex(randomblob(6)))
-  FROM customers;
-
-CREATE TABLE customers_new (
+CREATE TABLE customers (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL UNIQUE,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
-INSERT INTO customers_new
-  SELECT m.new_id, c.name, c.created_at
-  FROM customers c JOIN _id_map_customers m ON m.old_id = c.id;
-DROP TABLE customers;
-ALTER TABLE customers_new RENAME TO customers;
+INSERT INTO customers
+  SELECT m.new_id, s.name, s.created_at
+  FROM _snap_customers s JOIN _id_map_customers m ON m.old_id = s.id;
 
--- sell_units (depends on the products mapping)
-CREATE TABLE _id_map_sell_units (old_id INTEGER PRIMARY KEY, new_id TEXT NOT NULL);
-INSERT INTO _id_map_sell_units
-  SELECT id, lower(hex(randomblob(4)))||'-'||lower(hex(randomblob(2)))||'-4'||substr(lower(hex(randomblob(2))),2)||'-'||substr('89ab',abs(random())%4+1,1)||substr(lower(hex(randomblob(2))),2)||'-'||lower(hex(randomblob(6)))
-  FROM sell_units;
-
-CREATE TABLE sell_units_new (
+CREATE TABLE sell_units (
   id TEXT PRIMARY KEY,
   product_id TEXT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
@@ -190,21 +219,13 @@ CREATE TABLE sell_units_new (
   is_default INTEGER DEFAULT 0,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
-INSERT INTO sell_units_new
-  SELECT m.new_id, pm.new_id, su.name, su.quantity_in_base_units, su.sell_price, su.is_default, su.created_at
-  FROM sell_units su
-  JOIN _id_map_sell_units m ON m.old_id = su.id
-  JOIN _id_map_products pm ON pm.old_id = su.product_id;
-DROP TABLE sell_units;
-ALTER TABLE sell_units_new RENAME TO sell_units;
+INSERT INTO sell_units
+  SELECT m.new_id, pm.new_id, s.name, s.quantity_in_base_units, s.sell_price, s.is_default, s.created_at
+  FROM _snap_sell_units s
+  JOIN _id_map_sell_units m ON m.old_id = s.id
+  JOIN _id_map_products pm ON pm.old_id = s.product_id;
 
--- sales (depends on the customers mapping; sale_number preserves the old id)
-CREATE TABLE _id_map_sales (old_id INTEGER PRIMARY KEY, new_id TEXT NOT NULL);
-INSERT INTO _id_map_sales
-  SELECT id, lower(hex(randomblob(4)))||'-'||lower(hex(randomblob(2)))||'-4'||substr(lower(hex(randomblob(2))),2)||'-'||substr('89ab',abs(random())%4+1,1)||substr(lower(hex(randomblob(2))),2)||'-'||lower(hex(randomblob(6)))
-  FROM sales;
-
-CREATE TABLE sales_new (
+CREATE TABLE sales (
   id TEXT PRIMARY KEY,
   sale_number INTEGER NOT NULL,
   total REAL NOT NULL,
@@ -215,16 +236,13 @@ CREATE TABLE sales_new (
   notes TEXT,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
-INSERT INTO sales_new
+INSERT INTO sales
   SELECT m.new_id, s.id, s.total, s.payment_method, s.payment_reference, cm.new_id, s.customer_name, s.notes, s.created_at
-  FROM sales s
+  FROM _snap_sales s
   JOIN _id_map_sales m ON m.old_id = s.id
   LEFT JOIN _id_map_customers cm ON cm.old_id = s.customer_id;
-DROP TABLE sales;
-ALTER TABLE sales_new RENAME TO sales;
 
--- sale_items (depends on sales, products, sell_units)
-CREATE TABLE sale_items_new (
+CREATE TABLE sale_items (
   id TEXT PRIMARY KEY,
   sale_id TEXT NOT NULL REFERENCES sales(id) ON DELETE CASCADE,
   product_id TEXT NOT NULL REFERENCES products(id),
@@ -236,18 +254,15 @@ CREATE TABLE sale_items_new (
   subtotal REAL NOT NULL,
   cost_total REAL NOT NULL DEFAULT 0
 );
-INSERT INTO sale_items_new
+INSERT INTO sale_items
   SELECT lower(hex(randomblob(4)))||'-'||lower(hex(randomblob(2)))||'-4'||substr(lower(hex(randomblob(2))),2)||'-'||substr('89ab',abs(random())%4+1,1)||substr(lower(hex(randomblob(2))),2)||'-'||lower(hex(randomblob(6))),
-         sm.new_id, pm.new_id, sum.new_id, si.product_name, si.sell_unit_name, si.quantity, si.unit_price, si.subtotal, si.cost_total
-  FROM sale_items si
-  JOIN _id_map_sales sm ON sm.old_id = si.sale_id
-  JOIN _id_map_products pm ON pm.old_id = si.product_id
-  JOIN _id_map_sell_units sum ON sum.old_id = si.sell_unit_id;
-DROP TABLE sale_items;
-ALTER TABLE sale_items_new RENAME TO sale_items;
+         sm.new_id, pm.new_id, sum.new_id, s.product_name, s.sell_unit_name, s.quantity, s.unit_price, s.subtotal, s.cost_total
+  FROM _snap_sale_items s
+  JOIN _id_map_sales sm ON sm.old_id = s.sale_id
+  JOIN _id_map_products pm ON pm.old_id = s.product_id
+  JOIN _id_map_sell_units sum ON sum.old_id = s.sell_unit_id;
 
--- stock_movements (product_id -> products; reference_id -> sales, only when type='sale')
-CREATE TABLE stock_movements_new (
+CREATE TABLE stock_movements (
   id TEXT PRIMARY KEY,
   product_id TEXT NOT NULL REFERENCES products(id),
   type TEXT NOT NULL,
@@ -256,17 +271,21 @@ CREATE TABLE stock_movements_new (
   notes TEXT,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
-INSERT INTO stock_movements_new
+INSERT INTO stock_movements
   SELECT lower(hex(randomblob(4)))||'-'||lower(hex(randomblob(2)))||'-4'||substr(lower(hex(randomblob(2))),2)||'-'||substr('89ab',abs(random())%4+1,1)||substr(lower(hex(randomblob(2))),2)||'-'||lower(hex(randomblob(6))),
-         pm.new_id, sm2.type, sm2.quantity,
-         CASE WHEN sm2.type = 'sale' THEN salem.new_id ELSE NULL END,
-         sm2.notes, sm2.created_at
-  FROM stock_movements sm2
-  JOIN _id_map_products pm ON pm.old_id = sm2.product_id
-  LEFT JOIN _id_map_sales salem ON salem.old_id = sm2.reference_id;
-DROP TABLE stock_movements;
-ALTER TABLE stock_movements_new RENAME TO stock_movements;
+         pm.new_id, s.type, s.quantity,
+         CASE WHEN s.type = 'sale' THEN salem.new_id ELSE NULL END,
+         s.notes, s.created_at
+  FROM _snap_stock_movements s
+  JOIN _id_map_products pm ON pm.old_id = s.product_id
+  LEFT JOIN _id_map_sales salem ON salem.old_id = s.reference_id;
 
+DROP TABLE _snap_products;
+DROP TABLE _snap_customers;
+DROP TABLE _snap_sell_units;
+DROP TABLE _snap_sales;
+DROP TABLE _snap_sale_items;
+DROP TABLE _snap_stock_movements;
 DROP TABLE _id_map_products;
 DROP TABLE _id_map_customers;
 DROP TABLE _id_map_sell_units;
