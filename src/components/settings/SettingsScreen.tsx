@@ -24,6 +24,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import {
   useSettingsStore,
   SALES_PAGE_SIZE_OPTIONS,
@@ -40,12 +41,13 @@ import {
   backupDatabase,
   restoreDatabase,
 } from "@/services/system";
-import { CategoriesCustomersModal } from "./CategoriesCustomersModal";
+import { CatalogManager } from "./CatalogManager";
 import { DriveSyncSection } from "./DriveSyncSection";
 import {
   exportInventory,
   exportSales,
   exportStockMovements,
+  exportGeneral,
 } from "@/services/excel";
 import {
   currentVersion,
@@ -74,7 +76,6 @@ export function SettingsScreen({ onShowGuide }: Props) {
   const [installing, setInstalling] = useState(false);
 
   const [pwModalOpen, setPwModalOpen] = useState(false);
-  const [catalogOpen, setCatalogOpen] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [tab, setTab] = useState<SettingsTab>("general");
 
@@ -192,11 +193,17 @@ export function SettingsScreen({ onShowGuide }: Props) {
                 />
               </Row>
               <Row label={t("settings.language")} icon={Languages}>
-                <SegGroup
-                  options={langs.map((l) => ({ id: l.id, label: t(l.labelKey) }))}
+                <Select
+                  className="w-auto min-w-[140px]"
                   value={s.language}
-                  onChange={(v) => s.setLanguage(v as Lang)}
-                />
+                  onChange={(e) => s.setLanguage(e.target.value as Lang)}
+                >
+                  {langs.map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {t(l.labelKey)}
+                    </option>
+                  ))}
+                </Select>
               </Row>
             </Section>
 
@@ -294,9 +301,7 @@ export function SettingsScreen({ onShowGuide }: Props) {
         {tab === "catalog" && (
           <Section icon={Tags} title={t("settings.catalog")}>
             <p className="text-xs text-muted-foreground">{t("settings.catalogHint")}</p>
-            <Button variant="outline" className="w-fit" onClick={() => setCatalogOpen(true)}>
-              <Tags className="h-4 w-4" /> {t("settings.manageCatalog")}
-            </Button>
+            <CatalogManager />
           </Section>
         )}
 
@@ -357,6 +362,13 @@ export function SettingsScreen({ onShowGuide }: Props) {
                   >
                     <FileSpreadsheet className="h-4 w-4" />
                     {t("settings.exportMovements")}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => runExport(exportGeneral, "settings.generalExported")}
+                  >
+                    <FileSpreadsheet className="h-4 w-4" />
+                    {t("settings.exportGeneral")}
                   </Button>
                 </div>
               </div>
@@ -425,21 +437,20 @@ export function SettingsScreen({ onShowGuide }: Props) {
         open={pwModalOpen}
         onClose={() => setPwModalOpen(false)}
       />
-      <CategoriesCustomersModal
-        open={catalogOpen}
-        onClose={() => setCatalogOpen(false)}
-      />
     </div>
   );
 }
 
-type SettingsTab = "general" | "catalog" | "data" | "security" | "about";
+type SettingsTab = "general" | "catalog" | "security" | "data" | "about";
 
+// Ordered from most to least frequently used: everyday store setup and
+// catalog upkeep first, the occasional lock toggle next, then the more
+// advanced/rarely-touched data & sync operations, and finally reference info.
 const TABS: { id: SettingsTab; icon: typeof Palette; labelKey: "settings.tabGeneral" | "settings.catalog" | "settings.data" | "settings.security" | "settings.tabAbout" }[] = [
   { id: "general", icon: SlidersHorizontal, labelKey: "settings.tabGeneral" },
   { id: "catalog", icon: Tags, labelKey: "settings.catalog" },
-  { id: "data", icon: Database, labelKey: "settings.data" },
   { id: "security", icon: ShieldCheck, labelKey: "settings.security" },
+  { id: "data", icon: Database, labelKey: "settings.data" },
   { id: "about", icon: Info, labelKey: "settings.tabAbout" },
 ];
 

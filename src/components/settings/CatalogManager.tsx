@@ -1,11 +1,5 @@
 import { useEffect, useState } from "react";
 import { Pencil, Trash2, Merge, Check, X } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -24,36 +18,25 @@ import {
   type CustomerWithCount,
 } from "@/services/db";
 
-interface Props {
-  open: boolean;
-  onClose: () => void;
-}
-
 type Tab = "categories" | "customers";
 
-export function CategoriesCustomersModal({ open, onClose }: Props) {
+export function CatalogManager() {
   const t = useT();
   const [tab, setTab] = useState<Tab>("categories");
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>{t("settings.manageCatalog")}</DialogTitle>
-        </DialogHeader>
+    <div className="space-y-3">
+      <div className="inline-flex w-fit rounded-lg border border-border p-0.5">
+        <TabButton active={tab === "categories"} onClick={() => setTab("categories")}>
+          {t("common.category")}
+        </TabButton>
+        <TabButton active={tab === "customers"} onClick={() => setTab("customers")}>
+          {t("sales.customer")}
+        </TabButton>
+      </div>
 
-        <div className="inline-flex w-fit rounded-lg border border-border p-0.5">
-          <TabButton active={tab === "categories"} onClick={() => setTab("categories")}>
-            {t("common.category")}
-          </TabButton>
-          <TabButton active={tab === "customers"} onClick={() => setTab("customers")}>
-            {t("sales.customer")}
-          </TabButton>
-        </div>
-
-        {tab === "categories" ? <CategoriesPanel /> : <CustomersPanel />}
-      </DialogContent>
-    </Dialog>
+      {tab === "categories" ? <CategoriesPanel /> : <CustomersPanel />}
+    </div>
   );
 }
 
