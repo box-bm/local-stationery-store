@@ -183,6 +183,8 @@ export const es = {
 
   // Settings
   "settings.title": "Configuración",
+  "settings.tabGeneral": "General",
+  "settings.tabAbout": "Acerca de",
   "settings.appearance": "Apariencia",
   "settings.theme": "Tema",
   "settings.themeLight": "Claro",

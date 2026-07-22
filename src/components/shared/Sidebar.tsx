@@ -3,8 +3,6 @@ import {
   Package,
   Receipt,
   Settings,
-  Moon,
-  Sun,
   Store,
   HelpCircle,
   PanelLeftClose,
@@ -20,7 +18,6 @@ const NAV: { id: Screen; key: TranslationKey; icon: typeof ShoppingCart }[] = [
   { id: "pos", key: "nav.pos", icon: ShoppingCart },
   { id: "inventory", key: "nav.inventory", icon: Package },
   { id: "sales", key: "nav.sales", icon: Receipt },
-  { id: "settings", key: "nav.settings", icon: Settings },
 ];
 
 interface Props {
@@ -36,7 +33,7 @@ export function Sidebar({ onShowGuide }: Props) {
     sidebarCollapsed,
     toggleSidebar,
   } = useAppStore();
-  const { isDark, setTheme, storeName } = useSettingsStore();
+  const { storeName } = useSettingsStore();
   const t = useT();
   const collapsed = sidebarCollapsed;
 
@@ -122,15 +119,10 @@ export function Sidebar({ onShowGuide }: Props) {
         />
         <SideAction
           collapsed={collapsed}
-          icon={
-            isDark ? (
-              <Sun className="h-5 w-5 shrink-0" />
-            ) : (
-              <Moon className="h-5 w-5 shrink-0" />
-            )
-          }
-          label={isDark ? t("nav.lightMode") : t("nav.darkMode")}
-          onClick={() => setTheme(isDark ? "light" : "dark")}
+          active={screen === "settings"}
+          icon={<Settings className="h-5 w-5 shrink-0" />}
+          label={t("nav.settings")}
+          onClick={() => setScreen("settings")}
         />
         <SideAction
           collapsed={collapsed}
@@ -154,19 +146,24 @@ function SideAction({
   icon,
   label,
   onClick,
+  active,
 }: {
   collapsed: boolean;
   icon: React.ReactNode;
   label: string;
   onClick: () => void;
+  active?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
       title={collapsed ? label : undefined}
       className={cn(
-        "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground",
-        collapsed && "justify-center px-0"
+        "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
+        collapsed && "justify-center px-0",
+        active
+          ? "bg-primary text-primary-foreground"
+          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
       )}
     >
       {icon}

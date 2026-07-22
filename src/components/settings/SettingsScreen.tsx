@@ -18,6 +18,8 @@ import {
   Upload,
   AlertTriangle,
   Receipt,
+  SlidersHorizontal,
+  Info,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -74,6 +76,7 @@ export function SettingsScreen({ onShowGuide }: Props) {
   const [pwModalOpen, setPwModalOpen] = useState(false);
   const [catalogOpen, setCatalogOpen] = useState(false);
   const [restoring, setRestoring] = useState(false);
+  const [tab, setTab] = useState<SettingsTab>("general");
 
   useEffect(() => {
     getDataDir().then(setDataDir).catch(() => setDataDir("—"));
@@ -172,234 +175,250 @@ export function SettingsScreen({ onShowGuide }: Props) {
       <div className="mx-auto max-w-3xl space-y-6 p-6">
         <h1 className="text-2xl font-bold">{t("settings.title")}</h1>
 
-        {/* Appearance */}
-        <Section icon={Palette} title={t("settings.appearance")}>
-          <Row label={t("settings.theme")}>
-            <SegGroup
-              options={themes.map((th) => ({
-                id: th.id,
-                label: t(th.labelKey),
-              }))}
-              value={s.theme}
-              onChange={(v) => s.setTheme(v as ThemeMode)}
-            />
-          </Row>
-          <Row label={t("settings.language")} icon={Languages}>
-            <SegGroup
-              options={langs.map((l) => ({ id: l.id, label: t(l.labelKey) }))}
-              value={s.language}
-              onChange={(v) => s.setLanguage(v as Lang)}
-            />
-          </Row>
-        </Section>
+        <TabBar tab={tab} onChange={setTab} t={t} />
 
-        {/* Currency + store */}
-        <Section icon={Coins} title={t("settings.currency")}>
-          <div className="flex flex-wrap items-end gap-3">
-            <div className="space-y-1.5">
-              <Label>{t("settings.currencySymbol")}</Label>
-              <Input
-                value={symbol}
-                onChange={(e) => setSymbol(e.target.value)}
-                className="w-24"
-                maxLength={4}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>{t("settings.currencyCode")}</Label>
-              <Input
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                className="w-28"
-                maxLength={4}
-              />
-            </div>
-            <Button
-              variant="outline"
-              onClick={() => {
-                s.setCurrency(symbol || "Q", code || "GTQ");
-                toast.success(t("common.save"));
-              }}
-            >
-              <Save className="h-4 w-4" /> {t("common.save")}
-            </Button>
-          </div>
-          <Row label={t("settings.storeName")} icon={Store}>
-            <div className="flex w-full max-w-sm gap-2">
-              <Input
-                value={storeName}
-                onChange={(e) => setStoreNameLocal(e.target.value)}
-                onBlur={() => s.setStoreName(storeName || "Mi Librería")}
-              />
-            </div>
-          </Row>
-          <p className="text-xs text-muted-foreground">
-            {t("settings.storeNameHint")}
-          </p>
-        </Section>
+        {tab === "general" && (
+          <>
+            {/* Appearance */}
+            <Section icon={Palette} title={t("settings.appearance")}>
+              <Row label={t("settings.theme")}>
+                <SegGroup
+                  options={themes.map((th) => ({
+                    id: th.id,
+                    label: t(th.labelKey),
+                  }))}
+                  value={s.theme}
+                  onChange={(v) => s.setTheme(v as ThemeMode)}
+                />
+              </Row>
+              <Row label={t("settings.language")} icon={Languages}>
+                <SegGroup
+                  options={langs.map((l) => ({ id: l.id, label: t(l.labelKey) }))}
+                  value={s.language}
+                  onChange={(v) => s.setLanguage(v as Lang)}
+                />
+              </Row>
+            </Section>
 
-        {/* Payment methods */}
-        <Section icon={Wallet} title={t("settings.payments")}>
-          <Row label={t("checkout.cash")}>
-            <Toggle
-              checked={s.paymentMethods.cash}
-              onChange={() => s.setPaymentMethod("cash", !s.paymentMethods.cash)}
-            />
-          </Row>
-          <Row label={t("checkout.transfer")}>
-            <Toggle
-              checked={s.paymentMethods.transfer}
-              onChange={() =>
-                s.setPaymentMethod("transfer", !s.paymentMethods.transfer)
-              }
-            />
-          </Row>
-          <p className="text-xs text-muted-foreground">
-            {t("settings.paymentsHint")}
-          </p>
-        </Section>
-
-        {/* Sales list */}
-        <Section icon={Receipt} title={t("settings.sales")}>
-          <Row label={t("settings.salesPageSize")}>
-            <SegGroup
-              options={SALES_PAGE_SIZE_OPTIONS.map((n) => ({
-                id: String(n),
-                label: String(n),
-              }))}
-              value={String(s.salesPageSize)}
-              onChange={(v) => s.setSalesPageSize(Number(v))}
-            />
-          </Row>
-          <p className="text-xs text-muted-foreground">
-            {t("settings.salesPageSizeHint")}
-          </p>
-          {s.salesPageSize >= SALES_PAGE_SIZE_WARNING_THRESHOLD && (
-            <p className="flex items-center gap-1.5 text-sm text-amber-600">
-              <AlertTriangle className="h-4 w-4" />
-              {t("settings.salesPageSizeWarning")}
-            </p>
-          )}
-        </Section>
-
-        {/* Data & backups */}
-        <Section icon={Database} title={t("settings.data")}>
-          <div className="space-y-1.5">
-            <Label>{t("settings.dataLocation")}</Label>
-            <div className="flex items-center gap-2">
-              <code className="flex-1 truncate rounded-md border border-border bg-muted px-3 py-2 text-xs">
-                {dataDir}
-              </code>
-              <Button variant="outline" size="icon" onClick={copyPath} title={t("settings.copyPath")}>
-                <Copy className="h-4 w-4" />
-              </Button>
-              <Button variant="outline" onClick={openDataFolder}>
-                <FolderOpen className="h-4 w-4" /> {t("settings.openFolder")}
-              </Button>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2 pt-2">
-            <Button variant="outline" onClick={doBackup}>
-              <Database className="h-4 w-4" /> {t("settings.backup")}
-            </Button>
-            <Button variant="outline" onClick={doRestore} disabled={restoring}>
-              <Upload className="h-4 w-4" />
-              {restoring ? t("settings.checking") : t("settings.restore")}
-            </Button>
-          </div>
-
-          <div className="pt-2">
-            <Label className="mb-2 block">{t("settings.exportData")}</Label>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                onClick={() => runExport(exportInventory, "inv.exported")}
-              >
-                <FileSpreadsheet className="h-4 w-4" />
-                {t("settings.exportInventory")}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => runExport(() => exportSales(), "sales.exported")}
-              >
-                <FileSpreadsheet className="h-4 w-4" />
-                {t("settings.exportSales")}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() =>
-                  runExport(
-                    () => exportStockMovements(),
-                    "settings.movementsExported"
-                  )
-                }
-              >
-                <FileSpreadsheet className="h-4 w-4" />
-                {t("settings.exportMovements")}
-              </Button>
-            </div>
-          </div>
-        </Section>
-
-        {/* Google Drive sync */}
-        <DriveSyncSection />
-
-        {/* Categories & customers maintenance */}
-        <Section icon={Tags} title={t("settings.catalog")}>
-          <p className="text-xs text-muted-foreground">{t("settings.catalogHint")}</p>
-          <Button variant="outline" className="w-fit" onClick={() => setCatalogOpen(true)}>
-            <Tags className="h-4 w-4" /> {t("settings.manageCatalog")}
-          </Button>
-        </Section>
-
-        {/* Security */}
-        <Section icon={ShieldCheck} title={t("settings.security")}>
-          <Row label={t("settings.lock")}>
-            <Toggle checked={s.lockEnabled} onChange={toggleLock} />
-          </Row>
-          <p className="text-xs text-muted-foreground">{t("settings.lockHint")}</p>
-          {s.lockEnabled && (
-            <Button
-              variant="outline"
-              className="mt-1 w-fit"
-              onClick={() => setPwModalOpen(true)}
-            >
-              {t("settings.lockChange")}
-            </Button>
-          )}
-        </Section>
-
-        {/* Updates */}
-        <Section icon={DownloadCloud} title={t("settings.updates")}>
-          <Row label={t("settings.version", { version })}>
-            <Button variant="outline" onClick={check} disabled={checking}>
-              {checking ? t("settings.checking") : t("settings.checkUpdates")}
-            </Button>
-          </Row>
-          {update?.available && (
-            <div className="flex items-center justify-between rounded-lg border border-primary/40 bg-primary/10 p-3">
-              <p className="text-sm font-medium">
-                {t("settings.updateAvailable", { version: update.version ?? "" })}
+            {/* Currency + store */}
+            <Section icon={Coins} title={t("settings.currency")}>
+              <div className="flex flex-wrap items-end gap-3">
+                <div className="space-y-1.5">
+                  <Label>{t("settings.currencySymbol")}</Label>
+                  <Input
+                    value={symbol}
+                    onChange={(e) => setSymbol(e.target.value)}
+                    className="w-24"
+                    maxLength={4}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>{t("settings.currencyCode")}</Label>
+                  <Input
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                    className="w-28"
+                    maxLength={4}
+                  />
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    s.setCurrency(symbol || "Q", code || "GTQ");
+                    toast.success(t("common.save"));
+                  }}
+                >
+                  <Save className="h-4 w-4" /> {t("common.save")}
+                </Button>
+              </div>
+              <Row label={t("settings.storeName")} icon={Store}>
+                <div className="flex w-full max-w-sm gap-2">
+                  <Input
+                    value={storeName}
+                    onChange={(e) => setStoreNameLocal(e.target.value)}
+                    onBlur={() => s.setStoreName(storeName || "Mi Librería")}
+                  />
+                </div>
+              </Row>
+              <p className="text-xs text-muted-foreground">
+                {t("settings.storeNameHint")}
               </p>
-              <Button onClick={doInstall} disabled={installing}>
-                {installing ? t("settings.checking") : t("settings.installUpdate")}
-              </Button>
-            </div>
-          )}
-          {update && !update.available && (
-            <p className="flex items-center gap-1.5 text-sm text-success">
-              <Check className="h-4 w-4" /> {t("settings.upToDate")}
-            </p>
-          )}
-        </Section>
+            </Section>
 
-        {/* Guide */}
-        <Section icon={HelpCircle} title={t("nav.help")}>
-          <Button variant="outline" className="w-fit" onClick={onShowGuide}>
-            <HelpCircle className="h-4 w-4" /> {t("settings.showGuide")}
-          </Button>
-        </Section>
+            {/* Payment methods */}
+            <Section icon={Wallet} title={t("settings.payments")}>
+              <Row label={t("checkout.cash")}>
+                <Toggle
+                  checked={s.paymentMethods.cash}
+                  onChange={() => s.setPaymentMethod("cash", !s.paymentMethods.cash)}
+                />
+              </Row>
+              <Row label={t("checkout.transfer")}>
+                <Toggle
+                  checked={s.paymentMethods.transfer}
+                  onChange={() =>
+                    s.setPaymentMethod("transfer", !s.paymentMethods.transfer)
+                  }
+                />
+              </Row>
+              <p className="text-xs text-muted-foreground">
+                {t("settings.paymentsHint")}
+              </p>
+            </Section>
+
+            {/* Sales list */}
+            <Section icon={Receipt} title={t("settings.sales")}>
+              <Row label={t("settings.salesPageSize")}>
+                <SegGroup
+                  options={SALES_PAGE_SIZE_OPTIONS.map((n) => ({
+                    id: String(n),
+                    label: String(n),
+                  }))}
+                  value={String(s.salesPageSize)}
+                  onChange={(v) => s.setSalesPageSize(Number(v))}
+                />
+              </Row>
+              <p className="text-xs text-muted-foreground">
+                {t("settings.salesPageSizeHint")}
+              </p>
+              {s.salesPageSize >= SALES_PAGE_SIZE_WARNING_THRESHOLD && (
+                <p className="flex items-center gap-1.5 text-sm text-amber-600">
+                  <AlertTriangle className="h-4 w-4" />
+                  {t("settings.salesPageSizeWarning")}
+                </p>
+              )}
+            </Section>
+          </>
+        )}
+
+        {tab === "catalog" && (
+          <Section icon={Tags} title={t("settings.catalog")}>
+            <p className="text-xs text-muted-foreground">{t("settings.catalogHint")}</p>
+            <Button variant="outline" className="w-fit" onClick={() => setCatalogOpen(true)}>
+              <Tags className="h-4 w-4" /> {t("settings.manageCatalog")}
+            </Button>
+          </Section>
+        )}
+
+        {tab === "data" && (
+          <>
+            {/* Data & backups */}
+            <Section icon={Database} title={t("settings.data")}>
+              <div className="space-y-1.5">
+                <Label>{t("settings.dataLocation")}</Label>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 truncate rounded-md border border-border bg-muted px-3 py-2 text-xs">
+                    {dataDir}
+                  </code>
+                  <Button variant="outline" size="icon" onClick={copyPath} title={t("settings.copyPath")}>
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                  <Button variant="outline" onClick={openDataFolder}>
+                    <FolderOpen className="h-4 w-4" /> {t("settings.openFolder")}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2 pt-2">
+                <Button variant="outline" onClick={doBackup}>
+                  <Database className="h-4 w-4" /> {t("settings.backup")}
+                </Button>
+                <Button variant="outline" onClick={doRestore} disabled={restoring}>
+                  <Upload className="h-4 w-4" />
+                  {restoring ? t("settings.checking") : t("settings.restore")}
+                </Button>
+              </div>
+
+              <div className="pt-2">
+                <Label className="mb-2 block">{t("settings.exportData")}</Label>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => runExport(exportInventory, "inv.exported")}
+                  >
+                    <FileSpreadsheet className="h-4 w-4" />
+                    {t("settings.exportInventory")}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => runExport(() => exportSales(), "sales.exported")}
+                  >
+                    <FileSpreadsheet className="h-4 w-4" />
+                    {t("settings.exportSales")}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() =>
+                      runExport(
+                        () => exportStockMovements(),
+                        "settings.movementsExported"
+                      )
+                    }
+                  >
+                    <FileSpreadsheet className="h-4 w-4" />
+                    {t("settings.exportMovements")}
+                  </Button>
+                </div>
+              </div>
+            </Section>
+
+            {/* Google Drive sync */}
+            <DriveSyncSection />
+          </>
+        )}
+
+        {tab === "security" && (
+          <Section icon={ShieldCheck} title={t("settings.security")}>
+            <Row label={t("settings.lock")}>
+              <Toggle checked={s.lockEnabled} onChange={toggleLock} />
+            </Row>
+            <p className="text-xs text-muted-foreground">{t("settings.lockHint")}</p>
+            {s.lockEnabled && (
+              <Button
+                variant="outline"
+                className="mt-1 w-fit"
+                onClick={() => setPwModalOpen(true)}
+              >
+                {t("settings.lockChange")}
+              </Button>
+            )}
+          </Section>
+        )}
+
+        {tab === "about" && (
+          <>
+            {/* Updates */}
+            <Section icon={DownloadCloud} title={t("settings.updates")}>
+              <Row label={t("settings.version", { version })}>
+                <Button variant="outline" onClick={check} disabled={checking}>
+                  {checking ? t("settings.checking") : t("settings.checkUpdates")}
+                </Button>
+              </Row>
+              {update?.available && (
+                <div className="flex items-center justify-between rounded-lg border border-primary/40 bg-primary/10 p-3">
+                  <p className="text-sm font-medium">
+                    {t("settings.updateAvailable", { version: update.version ?? "" })}
+                  </p>
+                  <Button onClick={doInstall} disabled={installing}>
+                    {installing ? t("settings.checking") : t("settings.installUpdate")}
+                  </Button>
+                </div>
+              )}
+              {update && !update.available && (
+                <p className="flex items-center gap-1.5 text-sm text-success">
+                  <Check className="h-4 w-4" /> {t("settings.upToDate")}
+                </p>
+              )}
+            </Section>
+
+            {/* Guide */}
+            <Section icon={HelpCircle} title={t("nav.help")}>
+              <Button variant="outline" className="w-fit" onClick={onShowGuide}>
+                <HelpCircle className="h-4 w-4" /> {t("settings.showGuide")}
+              </Button>
+            </Section>
+          </>
+        )}
       </div>
 
       <SetPasswordModal
@@ -410,6 +429,46 @@ export function SettingsScreen({ onShowGuide }: Props) {
         open={catalogOpen}
         onClose={() => setCatalogOpen(false)}
       />
+    </div>
+  );
+}
+
+type SettingsTab = "general" | "catalog" | "data" | "security" | "about";
+
+const TABS: { id: SettingsTab; icon: typeof Palette; labelKey: "settings.tabGeneral" | "settings.catalog" | "settings.data" | "settings.security" | "settings.tabAbout" }[] = [
+  { id: "general", icon: SlidersHorizontal, labelKey: "settings.tabGeneral" },
+  { id: "catalog", icon: Tags, labelKey: "settings.catalog" },
+  { id: "data", icon: Database, labelKey: "settings.data" },
+  { id: "security", icon: ShieldCheck, labelKey: "settings.security" },
+  { id: "about", icon: Info, labelKey: "settings.tabAbout" },
+];
+
+function TabBar({
+  tab,
+  onChange,
+  t,
+}: {
+  tab: SettingsTab;
+  onChange: (tab: SettingsTab) => void;
+  t: ReturnType<typeof useT>;
+}) {
+  return (
+    <div className="flex flex-wrap gap-1.5 border-b border-border pb-4">
+      {TABS.map(({ id, icon: Icon, labelKey }) => (
+        <button
+          key={id}
+          onClick={() => onChange(id)}
+          className={cn(
+            "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+            tab === id
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+          )}
+        >
+          <Icon className="h-4 w-4" />
+          {t(labelKey)}
+        </button>
+      ))}
     </div>
   );
 }

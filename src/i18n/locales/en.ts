@@ -183,6 +183,8 @@ export const en: Record<TranslationKey, string> = {
 
   // Settings
   "settings.title": "Settings",
+  "settings.tabGeneral": "General",
+  "settings.tabAbout": "About",
   "settings.appearance": "Appearance",
   "settings.theme": "Theme",
   "settings.themeLight": "Light",
