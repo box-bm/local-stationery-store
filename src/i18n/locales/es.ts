@@ -317,6 +317,64 @@ export const es = {
     "Esto reemplazará TODOS los datos actuales con los del archivo de respaldo elegido. Esta acción no se puede deshacer. ¿Continuar?",
   "settings.restoreDone": "Respaldo restaurado. La app se reiniciará.",
   "settings.restoreError": "No se pudo restaurar el respaldo: {error}",
+
+  // Google Drive sync (settings)
+  "settings.sync": "Sincronización con Google Drive",
+  "settings.syncHint":
+    "Mantené tu inventario al día entre varias computadoras que usan la misma cuenta de Google. No es sincronización instantánea: se revisa cada pocos minutos y con un botón para forzarla.",
+  "settings.syncEnable": "Sincronización automática",
+  "settings.syncConnect": "Conectar con Google Drive",
+  "settings.syncDisconnect": "Desconectar",
+  "settings.syncDisconnectConfirm":
+    "¿Desconectar Google Drive? Este equipo dejará de sincronizarse.",
+  "settings.syncNow": "Sincronizar ahora",
+  "settings.syncing": "Sincronizando…",
+  "settings.syncLastSyncBy": "Última sincronización: {date} · por {device}",
+  "settings.syncNeverSynced": "Todavía no se ha sincronizado",
+  "settings.syncUnknownDevice": "otro equipo",
+  "settings.syncDeviceName": "Nombre de este equipo",
+  "settings.syncSchemaBlocked":
+    "Hay una versión más nueva de los datos en la nube. Actualizá la aplicación para continuar sincronizando.",
+  "settings.syncCheckUpdate": "Buscar actualización",
+  "settings.syncConnected": "Conectado",
+  "settings.syncNotConnected": "No conectado",
+  "settings.syncError": "Error de sincronización: {error}",
+  "settings.syncConnectError": "No se pudo conectar con Google: {error}",
+
+  "settings.syncTermsTitle": "Antes de continuar",
+  "settings.syncTermsBody":
+    "Librería POS es software libre. La sincronización con Google Drive usa tu propia cuenta de Google bajo tu responsabilidad. No nos hacemos responsables por pérdida de datos, robo de información o accesos no autorizados derivados del uso de esta función.",
+  "settings.syncTermsAccept": "He leído y acepto estos términos",
+  "settings.syncTermsContinue": "Continuar",
+  "settings.syncDeviceCodeTitle": "Conectar con Google",
+  "settings.syncDeviceCodeBody":
+    "Abrí el siguiente enlace en tu navegador e ingresá este código:",
+  "settings.syncOpenBrowser": "Abrir navegador",
+  "settings.syncCopyCode": "Copiar código",
+  "settings.syncCodeCopied": "Código copiado",
+  "settings.syncWaitingApproval": "Esperando aprobación en el navegador…",
+  "settings.syncChooseVersionTitle": "Ya existe un archivo en la nube",
+  "settings.syncChooseVersionBody":
+    "Otra computadora ya subió datos a esta cuenta de Google. ¿Qué querés hacer?",
+  "settings.syncUseCloud": "Usar la versión de la nube",
+  "settings.syncUseCloudHint":
+    "Reemplaza los datos de este equipo con los que ya están en la nube.",
+  "settings.syncUseLocal": "Subir la versión de este equipo",
+  "settings.syncUseLocalHint":
+    "Reemplaza los datos de la nube con los de este equipo.",
+  "settings.syncConnectedDone": "Google Drive conectado",
+
+  "settings.syncApplyTitle": "Cambios disponibles en la nube",
+  "settings.syncApplyBody":
+    "{device} sincronizó cambios el {date}. Aplicarlos reemplazará los datos de este equipo.",
+  "settings.syncApplyPendingWarning":
+    "Tenés cambios locales sin sincronizar que se perderán si continuás.",
+  "settings.syncApplyBackupCheckbox": "Hacer un respaldo local antes de continuar",
+  "settings.syncApplyConfirm": "Confirmar y sincronizar",
+  "settings.syncApplyConfirmWait": "Confirmar ({n})",
+  "settings.syncApplyPostpone": "Ahora no",
+  "settings.syncApplyDone": "Sincronización aplicada. La app se reiniciará.",
+  "settings.syncApplyError": "No se pudo aplicar la sincronización: {error}",
 } as const;
 
 export type TranslationKey = keyof typeof es;

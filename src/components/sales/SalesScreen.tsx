@@ -74,8 +74,8 @@ export function SalesScreen() {
   const [totalSales, setTotalSales] = useState(0);
   const [segments, setSegments] = useState<SalesSegment[]>([]);
   const [summary, setSummary] = useState({ count: 0, total: 0, profit: 0 });
-  const [expanded, setExpanded] = useState<number | null>(null);
-  const [itemsCache, setItemsCache] = useState<Record<number, SaleItem[]>>({});
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [itemsCache, setItemsCache] = useState<Record<string, SaleItem[]>>({});
   const [loading, setLoading] = useState(true);
 
   const range: DateRange = useMemo(() => {
@@ -122,7 +122,7 @@ export function SalesScreen() {
 
   const totalPages = Math.max(1, Math.ceil(totalSales / pageSize));
 
-  async function toggleExpand(saleId: number) {
+  async function toggleExpand(saleId: string) {
     if (expanded === saleId) {
       setExpanded(null);
       return;
@@ -331,7 +331,7 @@ export function SalesScreen() {
                             <ChevronRight className="h-4 w-4" />
                           )}
                         </td>
-                        <td className="px-4 py-3 font-medium">#{s.id}</td>
+                        <td className="px-4 py-3 font-medium">#{s.sale_number}</td>
                         <td className="px-4 py-3 text-muted-foreground">
                           {formatDateTime(s.created_at)}
                         </td>

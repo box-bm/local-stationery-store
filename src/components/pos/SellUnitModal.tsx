@@ -23,7 +23,7 @@ interface Props {
 
 export function SellUnitModal({ product, open, onClose, onConfirm }: Props) {
   const t = useT();
-  const [unitId, setUnitId] = useState<number | null>(null);
+  const [unitId, setUnitId] = useState<string | null>(null);
   const [quantity, setQuantity] = useState("1");
 
   // Reset selection when the product changes.

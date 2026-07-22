@@ -59,7 +59,7 @@ export function CheckoutModal({ open, onClose }: Props) {
   const [saving, setSaving] = useState(false);
 
   const [receipt, setReceipt] = useState<{
-    id: number;
+    saleNumber: number;
     total: number;
     items: CartItem[];
     change: number | null;
@@ -93,7 +93,7 @@ export function CheckoutModal({ open, onClose }: Props) {
         notes: notes || null,
       });
       setReceipt({
-        id: res.saleId,
+        saleNumber: res.saleNumber,
         total: res.total,
         items: snapshot,
         change: method === "cash" && cashNum > 0 ? cashNum - res.total : null,
@@ -101,7 +101,7 @@ export function CheckoutModal({ open, onClose }: Props) {
       clear();
       await refreshStockAlerts();
       setPhase("done");
-      toast.success(t("checkout.saleRegistered", { id: res.saleId }));
+      toast.success(t("checkout.saleRegistered", { id: res.saleNumber }));
     } catch (e) {
       toast.error(t("checkout.saleError", { error: String(e) }));
     } finally {
@@ -254,7 +254,7 @@ export function CheckoutModal({ open, onClose }: Props) {
                   {t("checkout.completed")}
                 </DialogTitle>
                 <DialogDescription className="text-center">
-                  {t("checkout.receipt", { id: receipt.id })}
+                  {t("checkout.receipt", { id: receipt.saleNumber })}
                 </DialogDescription>
               </DialogHeader>
 

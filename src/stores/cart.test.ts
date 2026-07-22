@@ -4,7 +4,7 @@ import type { Product, SellUnit } from "@/types";
 
 function product(id: number, name = `P${id}`): Product {
   return {
-    id,
+    id: String(id),
     name,
     description: null,
     barcode: null,
@@ -21,8 +21,8 @@ function product(id: number, name = `P${id}`): Product {
 
 function unit(id: number, price: number, qtyBase = 1): SellUnit {
   return {
-    id,
-    product_id: 1,
+    id: String(id),
+    product_id: "1",
     name: `U${id}`,
     quantity_in_base_units: qtyBase,
     sell_price: price,

@@ -2,6 +2,7 @@ import Database from "@tauri-apps/plugin-sql";
 import { cartTotal, lineSubtotal, stockDeducted } from "@/lib/calc";
 import { countStock, type StockCounts } from "@/lib/stock";
 import { fuzzyIncludes } from "@/lib/text";
+import { useSettingsStore } from "@/stores/settings";
 import type {
   Product,
   ProductInput,
@@ -33,6 +34,15 @@ export async function getDb(): Promise<Database> {
   return dbPromise;
 }
 
+/** Marks the local DB as having unsynced changes, for Google Drive sync. */
+function markDirty() {
+  try {
+    useSettingsStore.getState().setSyncPending(true);
+  } catch {
+    /* sync is optional; never let this break a write */
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Products
 // ---------------------------------------------------------------------------
@@ -52,7 +62,7 @@ export async function listProducts(search?: string): Promise<Product[]> {
   );
 }
 
-export async function getSellUnits(productId: number): Promise<SellUnit[]> {
+export async function getSellUnits(productId: string): Promise<SellUnit[]> {
   const db = await getDb();
   return db.select<SellUnit[]>(
     "SELECT * FROM sell_units WHERE product_id = $1 ORDER BY quantity_in_base_units",
@@ -61,7 +71,7 @@ export async function getSellUnits(productId: number): Promise<SellUnit[]> {
 }
 
 export async function getProductWithUnits(
-  id: number
+  id: string
 ): Promise<ProductWithUnits | null> {
   const db = await getDb();
   const rows = await db.select<Product[]>(
@@ -152,6 +162,7 @@ export async function renameCategory(
     "UPDATE products SET category = $1, updated_at = CURRENT_TIMESTAMP WHERE category = $2",
     [newName.trim(), oldName]
   );
+  markDirty();
 }
 
 /** Clear a category from every product that uses it (products are kept). */
@@ -161,6 +172,7 @@ export async function deleteCategory(name: string): Promise<void> {
     "UPDATE products SET category = NULL, updated_at = CURRENT_TIMESTAMP WHERE category = $1",
     [name]
   );
+  markDirty();
 }
 
 /** Merge several categories into one target category. */
@@ -176,16 +188,19 @@ export async function mergeCategories(
       [targetName.trim(), name]
     );
   }
+  markDirty();
 }
 
 /** Insert a product plus its sell units; records an initial purchase movement. */
-export async function createProduct(input: ProductInput): Promise<number> {
+export async function createProduct(input: ProductInput): Promise<string> {
   const db = await getDb();
-  const res = await db.execute(
+  const productId = crypto.randomUUID();
+  await db.execute(
     `INSERT INTO products
-       (name, description, barcode, category, base_unit_name, base_unit_quantity, purchase_price, stock, min_stock)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+       (id, name, description, barcode, category, base_unit_name, base_unit_quantity, purchase_price, stock, min_stock)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
     [
+      productId,
       input.name,
       input.description ?? null,
       input.barcode || null,
@@ -197,23 +212,23 @@ export async function createProduct(input: ProductInput): Promise<number> {
       input.min_stock,
     ]
   );
-  const productId = res.lastInsertId as number;
 
   await replaceSellUnits(productId, input.sell_units);
 
   if (input.stock > 0) {
     await db.execute(
-      `INSERT INTO stock_movements (product_id, type, quantity, notes)
-       VALUES ($1, 'purchase', $2, $3)`,
-      [productId, input.stock, "Stock inicial"]
+      `INSERT INTO stock_movements (id, product_id, type, quantity, notes)
+       VALUES ($1, $2, 'purchase', $3, $4)`,
+      [crypto.randomUUID(), productId, input.stock, "Stock inicial"]
     );
   }
+  markDirty();
   return productId;
 }
 
 /** Update a product's fields and replace its sell units. Does NOT change stock. */
 export async function updateProduct(
-  id: number,
+  id: string,
   input: ProductInput
 ): Promise<void> {
   const db = await getDb();
@@ -236,11 +251,12 @@ export async function updateProduct(
     ]
   );
   await replaceSellUnits(id, input.sell_units);
+  markDirty();
 }
 
 /** Delete + reinsert sell units for a product (simplest reliable sync). */
 async function replaceSellUnits(
-  productId: number,
+  productId: string,
   units: ProductInput["sell_units"]
 ): Promise<void> {
   const db = await getDb();
@@ -252,16 +268,23 @@ async function replaceSellUnits(
     const u = units[i];
     const isDefault = u.is_default || (!hasDefault && i === 0) ? 1 : 0;
     await db.execute(
-      `INSERT INTO sell_units (product_id, name, quantity_in_base_units, sell_price, is_default)
-       VALUES ($1,$2,$3,$4,$5)`,
-      [productId, u.name, u.quantity_in_base_units, u.sell_price, isDefault]
+      `INSERT INTO sell_units (id, product_id, name, quantity_in_base_units, sell_price, is_default)
+       VALUES ($1,$2,$3,$4,$5,$6)`,
+      [
+        crypto.randomUUID(),
+        productId,
+        u.name,
+        u.quantity_in_base_units,
+        u.sell_price,
+        isDefault,
+      ]
     );
   }
 }
 
 /** Add stock (a restock / purchase). Records a movement. */
 export async function restockProduct(
-  productId: number,
+  productId: string,
   quantityBaseUnits: number,
   purchasePrice?: number,
   notes?: string
@@ -279,15 +302,16 @@ export async function restockProduct(
     );
   }
   await db.execute(
-    `INSERT INTO stock_movements (product_id, type, quantity, notes)
-     VALUES ($1, 'purchase', $2, $3)`,
-    [productId, quantityBaseUnits, notes ?? "Reabastecimiento"]
+    `INSERT INTO stock_movements (id, product_id, type, quantity, notes)
+     VALUES ($1, $2, 'purchase', $3, $4)`,
+    [crypto.randomUUID(), productId, quantityBaseUnits, notes ?? "Reabastecimiento"]
   );
+  markDirty();
 }
 
 /** Manually set stock to an exact value, recording an adjustment movement. */
 export async function adjustStock(
-  productId: number,
+  productId: string,
   newStock: number,
   notes?: string
 ): Promise<void> {
@@ -303,15 +327,17 @@ export async function adjustStock(
     [newStock, productId]
   );
   await db.execute(
-    `INSERT INTO stock_movements (product_id, type, quantity, notes)
-     VALUES ($1, 'adjustment', $2, $3)`,
-    [productId, delta, notes ?? "Ajuste manual de inventario"]
+    `INSERT INTO stock_movements (id, product_id, type, quantity, notes)
+     VALUES ($1, $2, 'adjustment', $3, $4)`,
+    [crypto.randomUUID(), productId, delta, notes ?? "Ajuste manual de inventario"]
   );
+  markDirty();
 }
 
-export async function deleteProduct(id: number): Promise<void> {
+export async function deleteProduct(id: string): Promise<void> {
   const db = await getDb();
   await db.execute("DELETE FROM products WHERE id = $1", [id]);
+  markDirty();
 }
 
 /** Centralized stock alert counts: low (warning) and out (error). */
@@ -361,27 +387,29 @@ export async function listCustomersWithCounts(): Promise<CustomerWithCount[]> {
 }
 
 /** Rename a customer; past sales keep their original snapshot name. */
-export async function renameCustomer(id: number, name: string): Promise<void> {
+export async function renameCustomer(id: string, name: string): Promise<void> {
   const db = await getDb();
   await db.execute("UPDATE customers SET name = $1 WHERE id = $2", [
     name.trim(),
     id,
   ]);
+  markDirty();
 }
 
 /** Delete a customer. Past sales are kept but unlinked (customer_name snapshot remains). */
-export async function deleteCustomer(id: number): Promise<void> {
+export async function deleteCustomer(id: string): Promise<void> {
   const db = await getDb();
   await db.execute("UPDATE sales SET customer_id = NULL WHERE customer_id = $1", [
     id,
   ]);
   await db.execute("DELETE FROM customers WHERE id = $1", [id]);
+  markDirty();
 }
 
 /** Merge several customers into one target; reassigns their sales and deletes the rest. */
 export async function mergeCustomers(
-  sourceIds: number[],
-  targetId: number
+  sourceIds: string[],
+  targetId: string
 ): Promise<void> {
   const db = await getDb();
   const toMerge = sourceIds.filter((id) => id !== targetId);
@@ -392,6 +420,7 @@ export async function mergeCustomers(
     ]);
     await db.execute("DELETE FROM customers WHERE id = $1", [id]);
   }
+  markDirty();
 }
 
 /** Find a customer by exact (case-insensitive) name, or create one. */
@@ -403,10 +432,12 @@ export async function findOrCreateCustomer(name: string): Promise<Customer> {
     [trimmed]
   );
   if (existing.length) return existing[0];
-  const res = await db.execute("INSERT INTO customers (name) VALUES ($1)", [
+  const id = crypto.randomUUID();
+  await db.execute("INSERT INTO customers (id, name) VALUES ($1, $2)", [
+    id,
     trimmed,
   ]);
-  return { id: res.lastInsertId as number, name: trimmed, created_at: "" };
+  return { id, name: trimmed, created_at: "" };
 }
 
 // ---------------------------------------------------------------------------
@@ -414,7 +445,7 @@ export async function findOrCreateCustomer(name: string): Promise<Customer> {
 // ---------------------------------------------------------------------------
 
 export interface CompleteSaleResult {
-  saleId: number;
+  saleNumber: number;
   total: number;
 }
 
@@ -440,7 +471,7 @@ export async function completeSale(
   const total = cartTotal(cart);
 
   // Resolve (find or create) the customer if a name was given.
-  let customerId: number | null = null;
+  let customerId: string | null = null;
   let customerName: string | null = null;
   if (meta.customerName && meta.customerName.trim()) {
     const customer = await findOrCreateCustomer(meta.customerName);
@@ -448,11 +479,19 @@ export async function completeSale(
     customerName = customer.name;
   }
 
-  const saleRes = await db.execute(
+  const saleId = crypto.randomUUID();
+  const numberRows = await db.select<{ next: number }[]>(
+    "SELECT COALESCE(MAX(sale_number), 0) + 1 AS next FROM sales"
+  );
+  const saleNumber = numberRows[0].next;
+
+  await db.execute(
     `INSERT INTO sales
-       (total, payment_method, payment_reference, customer_id, customer_name, notes)
-     VALUES ($1,$2,$3,$4,$5,$6)`,
+       (id, sale_number, total, payment_method, payment_reference, customer_id, customer_name, notes)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
     [
+      saleId,
+      saleNumber,
       total,
       meta.paymentMethod,
       meta.paymentReference?.trim() || null,
@@ -461,7 +500,6 @@ export async function completeSale(
       meta.notes?.trim() || null,
     ]
   );
-  const saleId = saleRes.lastInsertId as number;
 
   for (const item of cart) {
     const subtotal = lineSubtotal(item.sellUnit.sell_price, item.quantity);
@@ -471,9 +509,10 @@ export async function completeSale(
       item.quantity;
     await db.execute(
       `INSERT INTO sale_items
-         (sale_id, product_id, sell_unit_id, product_name, sell_unit_name, quantity, unit_price, subtotal, cost_total)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+         (id, sale_id, product_id, sell_unit_id, product_name, sell_unit_name, quantity, unit_price, subtotal, cost_total)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
       [
+        crypto.randomUUID(),
         saleId,
         item.product.id,
         item.sellUnit.id,
@@ -495,18 +534,20 @@ export async function completeSale(
       [deducted, item.product.id]
     );
     await db.execute(
-      `INSERT INTO stock_movements (product_id, type, quantity, reference_id, notes)
-       VALUES ($1, 'sale', $2, $3, $4)`,
+      `INSERT INTO stock_movements (id, product_id, type, quantity, reference_id, notes)
+       VALUES ($1, $2, 'sale', $3, $4, $5)`,
       [
+        crypto.randomUUID(),
         item.product.id,
         -deducted,
         saleId,
-        `Venta #${saleId}: ${item.quantity} x ${item.sellUnit.name}`,
+        `Venta #${saleNumber}: ${item.quantity} x ${item.sellUnit.name}`,
       ]
     );
   }
 
-  return { saleId, total };
+  markDirty();
+  return { saleNumber, total };
 }
 
 export interface DateRange {
@@ -572,7 +613,7 @@ export async function countSales(range?: DateRange): Promise<number> {
   return rows[0]?.count ?? 0;
 }
 
-export async function getSaleItems(saleId: number): Promise<SaleItem[]> {
+export async function getSaleItems(saleId: string): Promise<SaleItem[]> {
   const db = await getDb();
   return db.select<SaleItem[]>(
     "SELECT * FROM sale_items WHERE sale_id = $1 ORDER BY id",

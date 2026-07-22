@@ -237,10 +237,10 @@ function CategoriesPanel() {
 function CustomersPanel() {
   const t = useT();
   const [items, setItems] = useState<CustomerWithCount[]>([]);
-  const [editing, setEditing] = useState<number | null>(null);
+  const [editing, setEditing] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
-  const [selected, setSelected] = useState<number[]>([]);
-  const [mergeTarget, setMergeTarget] = useState<number | "">("");
+  const [selected, setSelected] = useState<string[]>([]);
+  const [mergeTarget, setMergeTarget] = useState<string | "">("");
 
   async function refresh() {
     setItems(await listCustomersWithCounts());
@@ -273,7 +273,7 @@ function CustomersPanel() {
     refresh();
   }
 
-  function toggleSelect(id: number) {
+  function toggleSelect(id: string) {
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
   }
 
@@ -356,7 +356,7 @@ function CustomersPanel() {
           <span className="text-sm">{t("settings.mergeInto")}</span>
           <select
             value={mergeTarget}
-            onChange={(e) => setMergeTarget(Number(e.target.value))}
+            onChange={(e) => setMergeTarget(e.target.value)}
             className="h-9 rounded-md border border-input bg-background px-2 text-sm"
           >
             <option value="">{t("settings.mergeChoose")}</option>
