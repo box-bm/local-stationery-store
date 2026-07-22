@@ -91,6 +91,21 @@ Piezas ya configuradas:
    > al repo. Si la perdés, los usuarios no podrán recibir updates firmados con
    > esa clave y tendrás que migrar la pubkey.
 
+   **También cargá las credenciales de Google Drive sync** (mismo lugar:
+   Settings → Secrets and variables → Actions → New repository secret):
+   - `GOOGLE_CLIENT_ID` → el Client ID de la credencial OAuth "TVs and
+     Limited Input devices" creada en Google Cloud Console.
+   - `GOOGLE_CLIENT_SECRET` → su Client Secret.
+
+   > ⚠️ Estos dos se inyectan como `VITE_GOOGLE_CLIENT_ID`/
+   > `VITE_GOOGLE_CLIENT_SECRET` al compilar el frontend en `release.yml`
+   > (job `pre-config`) y quedan **incrustados en el bundle JS** de los
+   > instaladores — es tiempo de compilación, no de ejecución. Sin estos
+   > secretos configurados en el repo, los instaladores publicados salen con
+   > la sincronización de Google Drive deshabilitada (no hay `.env` en CI).
+   > Son los mismos valores que ya tenés en tu `.env` local — ver
+   > [`.env.example`](.env.example) para cómo obtenerlos.
+
 3. **Publicá una versión:**
    - Escribí commits con prefijos convencionales (`fix:`, `feat:`, etc.) y hacé merge a `main`.
    - `main.yml` corre los tests y crea un **release en borrador** `v0.2.0`.
