@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Copy } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -104,6 +105,16 @@ export function ConnectGoogleModal({ open, onClose }: Props) {
     }
   }
 
+  async function copyCode() {
+    if (!codeInfo) return;
+    try {
+      await navigator.clipboard.writeText(codeInfo.userCode);
+      toast.success(t("settings.syncCodeCopied"));
+    } catch {
+      /* clipboard may be unavailable */
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-md" hideClose={phase === "applying"}>
@@ -145,9 +156,19 @@ export function ConnectGoogleModal({ open, onClose }: Props) {
             </DialogHeader>
             {codeInfo ? (
               <div className="space-y-3 text-center">
-                <p className="rounded-lg border border-border bg-muted p-4 text-2xl font-bold tracking-widest">
-                  {codeInfo.userCode}
-                </p>
+                <div className="flex items-center gap-2 rounded-lg border border-border bg-muted p-4">
+                  <p className="flex-1 text-2xl font-bold tracking-widest">
+                    {codeInfo.userCode}
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={copyCode}
+                    title={t("settings.syncCopyCode")}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
                 <Button
                   variant="outline"
                   onClick={() => openUrl(codeInfo.verificationUrl)}

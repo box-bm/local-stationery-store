@@ -350,6 +350,8 @@ export const es = {
   "settings.syncDeviceCodeBody":
     "Abrí el siguiente enlace en tu navegador e ingresá este código:",
   "settings.syncOpenBrowser": "Abrir navegador",
+  "settings.syncCopyCode": "Copiar código",
+  "settings.syncCodeCopied": "Código copiado",
   "settings.syncWaitingApproval": "Esperando aprobación en el navegador…",
   "settings.syncChooseVersionTitle": "Ya existe un archivo en la nube",
   "settings.syncChooseVersionBody":

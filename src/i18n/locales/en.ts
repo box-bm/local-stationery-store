@@ -348,6 +348,8 @@ export const en: Record<TranslationKey, string> = {
   "settings.syncDeviceCodeTitle": "Connect with Google",
   "settings.syncDeviceCodeBody": "Open the following link in your browser and enter this code:",
   "settings.syncOpenBrowser": "Open browser",
+  "settings.syncCopyCode": "Copy code",
+  "settings.syncCodeCopied": "Code copied",
   "settings.syncWaitingApproval": "Waiting for approval in the browser…",
   "settings.syncChooseVersionTitle": "A file already exists in the cloud",
   "settings.syncChooseVersionBody":
