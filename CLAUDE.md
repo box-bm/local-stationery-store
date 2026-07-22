@@ -89,6 +89,8 @@ Tests use Vitest + Testing Library on jsdom. Only pure logic and Zustand stores 
 
 Version is determined automatically from **Conventional Commits**: `fix:` → patch, `feat:` → minor, `feat!:` / `BREAKING CHANGE` → major. Commits prefixed with `chore:`, `docs:`, `refactor:`, `test:`, `style:`, `ci:` produce no release. See `scripts/next-version.cjs`.
 
+> **Important:** The squash-merge commit message is taken from the **PR title**. Always prefix PR titles with the appropriate conventional commit type (e.g. `feat: Add Google Drive sync`, `fix: Crash on empty cart`). Without this prefix, `next-version.cjs` returns `"none"` and no draft release is created after the merge. Use the manual "Bump version" workflow (`version.yml`) as a fallback when this happens.
+
 Signing key is in `.keys/libreria.key` (not committed to the public remote). See `DISTRIBUTION.md` for the full release workflow.
 
 ### Path alias

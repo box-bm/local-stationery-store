@@ -39,8 +39,14 @@ jobs:
       - name: Calculate new version
         id: ver
         run: |
-          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "none")
-          NEW=$(node scripts/bump-version.cjs --dry-run ${{ inputs.bump_type }})
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          BASE="${LAST_TAG#v}"
+          IFS='.' read -r MAJ MIN PAT <<< "$BASE"
+          case "${{ inputs.bump_type }}" in
+            major) NEW="$((MAJ + 1)).0.0" ;;
+            minor) NEW="${MAJ}.$((MIN + 1)).0" ;;
+            patch) NEW="${MAJ}.${MIN}.$((PAT + 1))" ;;
+          esac
           echo "last_tag=$LAST_TAG" >> $GITHUB_OUTPUT
           echo "new=$NEW"           >> $GITHUB_OUTPUT
           echo "Last tag: $LAST_TAG → new: $NEW"
