@@ -316,5 +316,59 @@ export const en: Record<TranslationKey, string> = {
     "This will replace ALL current data with the chosen backup file. This cannot be undone. Continue?",
   "settings.restoreDone": "Backup restored. The app will restart.",
   "settings.restoreError": "Could not restore the backup: {error}",
+
+  // Google Drive sync (settings)
+  "settings.sync": "Google Drive sync",
+  "settings.syncHint":
+    "Keeps your inventory up to date across multiple computers signed into the same Google account. Not instant sync: it checks every few minutes, plus a button to force it.",
+  "settings.syncEnable": "Automatic sync",
+  "settings.syncConnect": "Connect Google Drive",
+  "settings.syncDisconnect": "Disconnect",
+  "settings.syncDisconnectConfirm":
+    "Disconnect Google Drive? This device will stop syncing.",
+  "settings.syncNow": "Sync now",
+  "settings.syncing": "Syncing…",
+  "settings.syncLastSyncBy": "Last synced: {date} · by {device}",
+  "settings.syncNeverSynced": "Not synced yet",
+  "settings.syncUnknownDevice": "another device",
+  "settings.syncDeviceName": "This device's name",
+  "settings.syncSchemaBlocked":
+    "The data in the cloud uses a newer version. Update the app to keep syncing.",
+  "settings.syncCheckUpdate": "Check for update",
+  "settings.syncConnected": "Connected",
+  "settings.syncNotConnected": "Not connected",
+  "settings.syncError": "Sync error: {error}",
+  "settings.syncConnectError": "Could not connect to Google: {error}",
+
+  "settings.syncTermsTitle": "Before you continue",
+  "settings.syncTermsBody":
+    "Librería POS is free software. Google Drive sync uses your own Google account at your own risk. We are not responsible for data loss, data theft, or unauthorized access resulting from the use of this feature.",
+  "settings.syncTermsAccept": "I have read and accept these terms",
+  "settings.syncTermsContinue": "Continue",
+  "settings.syncDeviceCodeTitle": "Connect with Google",
+  "settings.syncDeviceCodeBody": "Open the following link in your browser and enter this code:",
+  "settings.syncOpenBrowser": "Open browser",
+  "settings.syncWaitingApproval": "Waiting for approval in the browser…",
+  "settings.syncChooseVersionTitle": "A file already exists in the cloud",
+  "settings.syncChooseVersionBody":
+    "Another computer already uploaded data to this Google account. What would you like to do?",
+  "settings.syncUseCloud": "Use the cloud version",
+  "settings.syncUseCloudHint":
+    "Replaces this device's data with what's already in the cloud.",
+  "settings.syncUseLocal": "Upload this device's version",
+  "settings.syncUseLocalHint": "Replaces the cloud data with this device's data.",
+  "settings.syncConnectedDone": "Google Drive connected",
+
+  "settings.syncApplyTitle": "Changes available in the cloud",
+  "settings.syncApplyBody":
+    "{device} synced changes on {date}. Applying them will replace this device's data.",
+  "settings.syncApplyPendingWarning":
+    "You have unsynced local changes that will be lost if you continue.",
+  "settings.syncApplyBackupCheckbox": "Make a local backup before continuing",
+  "settings.syncApplyConfirm": "Confirm and sync",
+  "settings.syncApplyConfirmWait": "Confirm ({n})",
+  "settings.syncApplyPostpone": "Not now",
+  "settings.syncApplyDone": "Sync applied. The app will restart.",
+  "settings.syncApplyError": "Could not apply the sync: {error}",
 };
 

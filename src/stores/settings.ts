@@ -26,6 +26,19 @@ export interface SettingsState {
   /** Rows per page in the Ventas list. */
   salesPageSize: number;
 
+  // --- Google Drive sync (non-secret metadata only; the OAuth token lives
+  // in the OS keyring, see src/services/vault.ts) ---
+  driveSyncEnabled: boolean;
+  deviceId: string;
+  deviceName: string;
+  driveFileId: string | null;
+  lastSyncedRemoteModifiedTime: string | null;
+  lastSyncedAt: string | null;
+  lastSyncedByDeviceName: string | null;
+  /** True when local writes happened since the last successful upload. */
+  syncPending: boolean;
+  driveSyncTermsAcceptedAt: string | null;
+
   setLanguage: (l: Lang) => void;
   setTheme: (t: ThemeMode) => void;
   setCurrency: (symbol: string, code: string) => void;
@@ -34,6 +47,18 @@ export interface SettingsState {
   setPaymentMethod: (id: PaymentMethodId, enabled: boolean) => void;
   setOnboardingDone: (done: boolean) => void;
   setSalesPageSize: (size: number) => void;
+
+  setDriveSyncEnabled: (enabled: boolean) => void;
+  setDeviceName: (name: string) => void;
+  setDriveSyncMeta: (meta: {
+    driveFileId?: string | null;
+    lastSyncedRemoteModifiedTime?: string | null;
+    lastSyncedAt?: string | null;
+    lastSyncedByDeviceName?: string | null;
+  }) => void;
+  setSyncPending: (pending: boolean) => void;
+  acceptDriveSyncTerms: () => void;
+  disconnectDriveSync: () => void;
 }
 
 /** Page sizes offered in Settings; sizes above this are flagged as risky for performance. */
@@ -53,6 +78,15 @@ interface Persisted {
   paymentMethods: PaymentMethods;
   onboardingDone: boolean;
   salesPageSize: number;
+  driveSyncEnabled: boolean;
+  deviceId: string;
+  deviceName: string;
+  driveFileId: string | null;
+  lastSyncedRemoteModifiedTime: string | null;
+  lastSyncedAt: string | null;
+  lastSyncedByDeviceName: string | null;
+  syncPending: boolean;
+  driveSyncTermsAcceptedAt: string | null;
 }
 
 const DEFAULTS: Persisted = {
@@ -66,6 +100,15 @@ const DEFAULTS: Persisted = {
   paymentMethods: { cash: true, transfer: true },
   onboardingDone: false,
   salesPageSize: 50,
+  driveSyncEnabled: false,
+  deviceId: "",
+  deviceName: "",
+  driveFileId: null,
+  lastSyncedRemoteModifiedTime: null,
+  lastSyncedAt: null,
+  lastSyncedByDeviceName: null,
+  syncPending: false,
+  driveSyncTermsAcceptedAt: null,
 };
 
 function load(): Persisted {
@@ -98,6 +141,17 @@ function applyTheme(dark: boolean) {
 const initial = load();
 applyTheme(resolveDark(initial.theme));
 
+// Every install gets a stable random device id/name the first time settings
+// load, so Google Drive sync can attribute changes to a device before the
+// user ever opens the sync settings.
+let deviceBootstrapped = false;
+if (!initial.deviceId) {
+  initial.deviceId = crypto.randomUUID();
+  initial.deviceName = `Equipo ${initial.deviceId.slice(0, 4)}`;
+  deviceBootstrapped = true;
+}
+if (deviceBootstrapped) persist(initial);
+
 export const useSettingsStore = create<SettingsState>((set, get) => {
   function snapshot(): Persisted {
     const s = get();
@@ -112,6 +166,15 @@ export const useSettingsStore = create<SettingsState>((set, get) => {
       paymentMethods: s.paymentMethods,
       onboardingDone: s.onboardingDone,
       salesPageSize: s.salesPageSize,
+      driveSyncEnabled: s.driveSyncEnabled,
+      deviceId: s.deviceId,
+      deviceName: s.deviceName,
+      driveFileId: s.driveFileId,
+      lastSyncedRemoteModifiedTime: s.lastSyncedRemoteModifiedTime,
+      lastSyncedAt: s.lastSyncedAt,
+      lastSyncedByDeviceName: s.lastSyncedByDeviceName,
+      syncPending: s.syncPending,
+      driveSyncTermsAcceptedAt: s.driveSyncTermsAcceptedAt,
     };
   }
 
@@ -160,6 +223,45 @@ export const useSettingsStore = create<SettingsState>((set, get) => {
     setSalesPageSize: (salesPageSize) => {
       set({ salesPageSize });
       persist({ ...snapshot(), salesPageSize });
+    },
+
+    setDriveSyncEnabled: (driveSyncEnabled) => {
+      set({ driveSyncEnabled });
+      persist({ ...snapshot(), driveSyncEnabled });
+    },
+
+    setDeviceName: (deviceName) => {
+      set({ deviceName });
+      persist({ ...snapshot(), deviceName });
+    },
+
+    setDriveSyncMeta: (meta) => {
+      set(meta);
+      persist({ ...snapshot(), ...meta });
+    },
+
+    setSyncPending: (syncPending) => {
+      set({ syncPending });
+      persist({ ...snapshot(), syncPending });
+    },
+
+    acceptDriveSyncTerms: () => {
+      const driveSyncTermsAcceptedAt = new Date().toISOString();
+      set({ driveSyncTermsAcceptedAt });
+      persist({ ...snapshot(), driveSyncTermsAcceptedAt });
+    },
+
+    disconnectDriveSync: () => {
+      const reset = {
+        driveSyncEnabled: false,
+        driveFileId: null,
+        lastSyncedRemoteModifiedTime: null,
+        lastSyncedAt: null,
+        lastSyncedByDeviceName: null,
+        syncPending: false,
+      };
+      set(reset);
+      persist({ ...snapshot(), ...reset });
     },
   };
 });

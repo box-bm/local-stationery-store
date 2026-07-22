@@ -46,7 +46,7 @@ export function InventoryScreen() {
   const [loading, setLoading] = useState(true);
 
   const [formOpen, setFormOpen] = useState(false);
-  const [editId, setEditId] = useState<number | null>(null);
+  const [editId, setEditId] = useState<string | null>(null);
   const [restockTarget, setRestockTarget] = useState<Product | null>(null);
 
   const refreshStockAlerts = useAppStore((s) => s.refreshStockAlerts);
@@ -91,7 +91,7 @@ export function InventoryScreen() {
     setEditId(null);
     setFormOpen(true);
   }
-  function openEdit(id: number) {
+  function openEdit(id: string) {
     setEditId(id);
     setFormOpen(true);
   }

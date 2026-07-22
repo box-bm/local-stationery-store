@@ -108,7 +108,7 @@ export async function exportSales(range?: DateRange): Promise<boolean> {
 
   for (const s of sales) {
     saleRows.push({
-      "Venta #": s.id,
+      "Venta #": s.sale_number,
       Fecha: formatDateTime(s.created_at),
       Cliente: s.customer_name ?? "",
       Artículos: s.item_count,
@@ -121,7 +121,7 @@ export async function exportSales(range?: DateRange): Promise<boolean> {
     const items = await getSaleItems(s.id);
     for (const it of items) {
       itemRows.push({
-        "Venta #": s.id,
+        "Venta #": s.sale_number,
         Fecha: formatDateTime(s.created_at),
         Producto: it.product_name,
         "Unidad de venta": it.sell_unit_name,

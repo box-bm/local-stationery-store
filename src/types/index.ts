@@ -1,7 +1,7 @@
 // TypeScript interfaces mirroring the SQLite schema.
 
 export interface Product {
-  id: number;
+  id: string;
   name: string;
   description: string | null;
   barcode: string | null;
@@ -16,8 +16,8 @@ export interface Product {
 }
 
 export interface SellUnit {
-  id: number;
-  product_id: number;
+  id: string;
+  product_id: string;
   name: string;
   quantity_in_base_units: number;
   sell_price: number;
@@ -31,27 +31,29 @@ export interface ProductWithUnits extends Product {
 }
 
 export interface Sale {
-  id: number;
+  id: string;
+  /** Sequential, human-facing sale number (receipts, sales list, exports) — not a sync identity. */
+  sale_number: number;
   total: number;
   payment_method: string;
   payment_reference: string | null;
-  customer_id: number | null;
+  customer_id: string | null;
   customer_name: string | null;
   notes: string | null;
   created_at: string;
 }
 
 export interface Customer {
-  id: number;
+  id: string;
   name: string;
   created_at: string;
 }
 
 export interface SaleItem {
-  id: number;
-  sale_id: number;
-  product_id: number;
-  sell_unit_id: number;
+  id: string;
+  sale_id: string;
+  product_id: string;
+  sell_unit_id: string;
   product_name: string;
   sell_unit_name: string;
   quantity: number;
@@ -77,11 +79,11 @@ export interface SalesSegment {
 export type StockMovementType = "purchase" | "sale" | "adjustment";
 
 export interface StockMovement {
-  id: number;
-  product_id: number;
+  id: string;
+  product_id: string;
   type: StockMovementType;
   quantity: number;
-  reference_id: number | null;
+  reference_id: string | null;
   notes: string | null;
   created_at: string;
   // Joined for reporting convenience.

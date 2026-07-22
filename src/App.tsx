@@ -7,9 +7,11 @@ import { POSScreen } from "@/components/pos/POSScreen";
 import { InventoryScreen } from "@/components/inventory/InventoryScreen";
 import { SalesScreen } from "@/components/sales/SalesScreen";
 import { SettingsScreen } from "@/components/settings/SettingsScreen";
+import { ApplySyncModal } from "@/components/settings/ApplySyncModal";
 import { useAppStore } from "@/stores/app";
 import { useSettingsStore } from "@/stores/settings";
 import { checkForUpdate } from "@/services/updater";
+import { startSyncLoop, runSyncTick } from "@/services/sync";
 import { toast } from "@/stores/toast";
 import { t } from "@/i18n";
 
@@ -45,6 +47,15 @@ export default function App() {
     return () => window.removeEventListener("resize", onResize);
   }, [refreshStockAlerts, setSidebarCollapsed]);
 
+  // Google Drive sync: only once the app is unlocked (never touch the DB
+  // from behind the PIN screen).
+  useEffect(() => {
+    if (!unlocked) return;
+    runSyncTick().catch(() => {});
+    const stop = startSyncLoop();
+    return stop;
+  }, [unlocked]);
+
   function closeGuide() {
     setShowGuide(false);
     setOnboardingDone(true);
@@ -72,6 +83,7 @@ export default function App() {
       </main>
 
       <OnboardingGuide open={showGuide} onClose={closeGuide} />
+      <ApplySyncModal />
       <Toaster />
     </div>
   );

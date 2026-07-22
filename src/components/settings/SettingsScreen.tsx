@@ -39,6 +39,7 @@ import {
   restoreDatabase,
 } from "@/services/system";
 import { CategoriesCustomersModal } from "./CategoriesCustomersModal";
+import { DriveSyncSection } from "./DriveSyncSection";
 import {
   exportInventory,
   exportSales,
@@ -341,6 +342,9 @@ export function SettingsScreen({ onShowGuide }: Props) {
           </div>
         </Section>
 
+        {/* Google Drive sync */}
+        <DriveSyncSection />
+
         {/* Categories & customers maintenance */}
         <Section icon={Tags} title={t("settings.catalog")}>
           <p className="text-xs text-muted-foreground">{t("settings.catalogHint")}</p>
@@ -412,7 +416,7 @@ export function SettingsScreen({ onShowGuide }: Props) {
 
 // --- small layout helpers -------------------------------------------------
 
-function Section({
+export function Section({
   icon: Icon,
   title,
   children,
@@ -432,7 +436,7 @@ function Section({
   );
 }
 
-function Row({
+export function Row({
   label,
   icon: Icon,
   children,
@@ -481,7 +485,7 @@ function SegGroup({
   );
 }
 
-function Toggle({
+export function Toggle({
   checked,
   onChange,
 }: {

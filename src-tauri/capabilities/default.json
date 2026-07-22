@@ -39,8 +39,16 @@
       "identifier": "opener:allow-open-path",
       "allow": [{ "path": "**" }]
     },
+    "opener:allow-open-url",
     "updater:default",
     "process:default",
-    "process:allow-restart"
+    "process:allow-restart",
+    {
+      "identifier": "http:default",
+      "allow": [
+        { "url": "https://oauth2.googleapis.com/*" },
+        { "url": "https://www.googleapis.com/*" }
+      ]
+    }
   ]
 }

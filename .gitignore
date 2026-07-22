@@ -4,6 +4,9 @@ dist
 dist-ssr
 *.local
 
+# Google Drive sync credentials (see .env.example)
+.env
+
 # Editor
 .vscode/*
 !.vscode/extensions.json

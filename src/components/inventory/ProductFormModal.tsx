@@ -52,7 +52,7 @@ type FormValues = z.input<ReturnType<typeof makeSchema>>;
 
 interface Props {
   open: boolean;
-  productId: number | null; // null = create
+  productId: string | null; // null = create
   categories: string[];
   onClose: () => void;
   onSaved: () => void;
