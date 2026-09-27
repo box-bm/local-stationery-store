@@ -33,8 +33,12 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
-      - name: Run all tests
-        run: npm test
+      - name: Run all tests with coverage
+        run: npm run test:ci
+
+      - name: Coverage summary
+        if: always()
+        run: node scripts/coverage-summary.cjs >> "$GITHUB_STEP_SUMMARY"
 
       - name: Build frontend
         run: npm run build
