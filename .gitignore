@@ -24,3 +24,6 @@ src-tauri/gen
 # Updater signing keys (keep private!)
 .keys/
 app-icon.png
+
+# Test coverage reports
+coverage/

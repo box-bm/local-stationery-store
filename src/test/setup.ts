@@ -39,7 +39,8 @@ function ensureLocalStorage() {
 ensureLocalStorage();
 
 // jsdom doesn't implement matchMedia, which the settings store reads at load.
-if (!window.matchMedia) {
+// (Guarded for test files that opt into `@vitest-environment node`.)
+if (typeof window !== "undefined" && !window.matchMedia) {
   window.matchMedia = vi.fn().mockImplementation((query: string) => ({
     matches: false,
     media: query,
@@ -53,6 +54,6 @@ if (!window.matchMedia) {
 }
 
 afterEach(() => {
-  cleanup();
+  if (typeof document !== "undefined") cleanup();
   localStorage.clear();
 });

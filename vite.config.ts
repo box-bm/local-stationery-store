@@ -20,6 +20,29 @@ export default defineConfig(async () => ({
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "html", "json-summary", "lcov"],
+      reportsDirectory: "./coverage",
+      // Only the logic layers are unit-tested; screens/UI need the Tauri
+      // runtime and are exercised manually via `npm run tauri:dev`.
+      include: ["src/lib/**", "src/stores/**", "src/services/**", "src/hooks/**", "src/i18n/**"],
+      exclude: [
+        "**/*.test.{ts,tsx}",
+        "src/i18n/locales/**",
+        // Thin wrappers over Tauri plugins with no logic of their own.
+        "src/services/system.ts",
+        "src/services/updater.ts",
+        "src/services/excel.ts",
+        "src/services/vault.ts",
+      ],
+      thresholds: {
+        lines: 85,
+        functions: 85,
+        branches: 80,
+        statements: 85,
+      },
+    },
   },
 
   // Prevent Vite from obscuring Rust errors and tune for Tauri dev.

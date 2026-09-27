@@ -17,7 +17,8 @@ npm run dev          # frontend-only in browser (no SQLite access, limited funct
 npm run typecheck    # tsc --noEmit
 npm test             # run all tests once (Vitest)
 npm run test:watch   # Vitest in watch mode
-npm run test:coverage
+npm run test:coverage # HTML report in coverage/; fails below the thresholds in vite.config.ts
+npm run test:ci      # what CI runs: coverage + JUnit report
 
 npm run tauri:build  # produces signed installer (.msi/.exe on Windows)
 
@@ -72,19 +73,17 @@ Two locales: `src/i18n/locales/es.ts` (source of truth for all keys) and `en.ts`
 ### Google Drive sync
 Optional, off by default. Syncs the whole `.db` file (not row-level) to a single file in the user's Google Drive — **the cloud always wins**: on each tick (`src/services/sync.ts`, `runSyncTick`), a remote change newer than the last known one is offered to the user via a blocking, timed confirmation (`ApplySyncModal`) rather than applied silently; local changes only push up when the remote hasn't diverged. Auth is Google's OAuth Device Authorization Grant (`src/services/googleAuth.ts`) — no local redirect listener needed. The refresh token lives in the OS keyring (`src/services/vault.ts`, via the custom Rust commands noted above), never in `localStorage` or a plain file. Drive file `appProperties` (private, invisible in Drive's UI) carry `lastSyncDeviceId`/`lastSyncDeviceName`/`lastSyncAt`/`dbSchemaVersion`, which is how the app shows "last synced by X" and refuses to pull a schema newer than this build supports (see the migration table above).
 
-### Tested modules
-Tests use Vitest + Testing Library on jsdom. Only pure logic and Zustand stores are tested — no Tauri APIs (they require the desktop runtime):
-- `src/lib/calc.test.ts`
-- `src/lib/stock.test.ts`
-- `src/lib/utils.test.ts`
-- `src/lib/crypto.test.ts`
-- `src/i18n/i18n.test.ts`
-- `src/stores/cart.test.ts`
-- `src/components/pos/Cart.test.tsx`
+### Tests
+Vitest + Testing Library on jsdom (a file can opt into `// @vitest-environment node`). Tauri APIs can't run in tests, so they are mocked with `vi.mock`:
+- **Pure logic, stores, hooks** (`src/lib`, `src/stores`, `src/hooks`, `src/i18n`) — tested directly.
+- **SQL layer** (`src/services/db.test.ts`) — `@tauri-apps/plugin-sql` is swapped for an in-memory SQLite (`sql.js`) via `src/test/sqlite.ts`, which builds the schema by running the **real migrations parsed from `src-tauri/src/lib.rs`**. If you change a migration or a query, these tests exercise the real SQL.
+- **Migrations** (`src/services/migrations.test.ts`) — checks sequential numbering, that `CURRENT_SCHEMA_VERSION` and the seeded `app_meta.schema_version` match the latest migration, and that v5 preserves data.
+- **Google Drive sync** (`sync`, `googleAuth`, `googleDrive` tests) — `plugin-http`, `plugin-fs`, vault and Drive client are mocked; `runSyncTick`'s decisions (schema gate, cloud-wins prompt, never during a sale, push when not diverged) are covered.
+- **Not unit-tested:** screens/components other than `Cart`, and thin Tauri wrappers (`system.ts`, `updater.ts`, `excel.ts`, `vault.ts`) — excluded from coverage.
 
 ### CI / release pipeline
-- **PR** → `typecheck` + `vitest --changed` (only files touched by the PR)
-- **Merge to `main`** → full test suite → auto-detects version bump from commit messages → bumps + commits version files → creates draft GitHub Release
+- **PR** → `typecheck` + full test suite with coverage thresholds, on Ubuntu and Windows; coverage table in the job summary and HTML report as an artifact
+- **Merge to `main`** → full test suite with coverage → auto-detects version bump from commit messages → bumps + commits version files → creates draft GitHub Release
 - **Publish the release** → builds signed installers on all platforms; Tauri auto-updater picks them up in-app
 
 Version is determined automatically from **Conventional Commits**: `fix:` → patch, `feat:` → minor, `feat!:` / `BREAKING CHANGE` → major. Commits prefixed with `chore:`, `docs:`, `refactor:`, `test:`, `style:`, `ci:` produce no release. See `scripts/next-version.cjs`.

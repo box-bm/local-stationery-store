@@ -1,7 +1,9 @@
 name: PR checks
 
-# On pull requests, typecheck and run only the tests related to the files
-# changed in the PR (Vitest --changed), to keep feedback fast.
+# On pull requests: typecheck and run the full test suite with coverage.
+# The whole suite runs in a few seconds, and running it all (rather than
+# `vitest --changed`) also catches changes outside the JS module graph —
+# e.g. migrations.test.ts reads src-tauri/src/lib.rs from disk.
 on:
   pull_request:
     branches: [main]
@@ -11,13 +13,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test-changed:
-    runs-on: ubuntu-latest
+  test:
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # Windows is the deploy target; Linux is the fast baseline.
+        os: [ubuntu-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
-        with:
-          # Full history so Vitest can diff against the base branch.
-          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -31,10 +36,19 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
-      - name: Fetch base branch
-        run: git fetch origin ${{ github.base_ref }}
+      - name: Run tests with coverage
+        # Fails if coverage drops below the thresholds in vite.config.ts.
+        run: npm run test:ci
 
-      - name: Run tests for changed files only
-        # Vitest re-runs only test files whose module graph touches a file
-        # changed since the base branch. Exits 0 if nothing is related.
-        run: npx vitest run --changed origin/${{ github.base_ref }}
+      - name: Coverage summary
+        if: always() && matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: node scripts/coverage-summary.cjs >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload coverage report
+        if: always() && matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 14
