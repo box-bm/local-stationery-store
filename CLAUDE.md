@@ -94,3 +94,39 @@ Signing key is in `.keys/libreria.key` (not committed to the public remote). See
 
 ### Path alias
 `@/` maps to `src/` (configured in `vite.config.ts` and `tsconfig.json`).
+
+## Contexto del proyecto de QA (UMG)
+
+Esta sección da contexto adicional a cualquier IA o persona del equipo que trabaje en este repo como parte del proyecto final de QA. La fuente de verdad completa está en `docs/qa/GUIA_EQUIPO.md`; léela antes de tomar cualquier tarea de este proyecto.
+
+**Propósito:** este repositorio es el sistema bajo prueba del proyecto final del curso de Aseguramiento de la Calidad de Software (UMG, plan sábado). Rúbrica de 20 puntos: Sprint 1 Preparación (3), Sprint 2 Diseño de pruebas (4), Sprint 3 Gestión de bugs (4), Sprint 4 Automatización (4), Presentación ejecutiva (5).
+
+**Versión baseline:** v0.4.0 (release de GitHub) es la versión que el equipo prueba. El módulo nuevo (dashboard y responsive, ver Fase 3 más abajo) saldrá como **v0.5.0**, con fecha de corte **viernes 2 de octubre de 2026**. Si no está listo para esa fecha, se mueve al backlog y el equipo sigue probando v0.4.0. Meta interna de entrega del proyecto completo: **sábado 24 de octubre de 2026**.
+
+**Equipo y roles** (solo nombres de pila, sin datos personales adicionales en este repo público):
+- Brandon: Product Owner, Arquitecto, Líder Técnico, dueño del código.
+- Maria Jose: Scrum Master, SQA.
+- Antony: QA, diseño y ejecución manual.
+- Josue: QA Automatización.
+- Jonathan: Dev, caja blanca y fixes.
+
+**Regla de independencia:** quien escribe el código no verifica su propio fix. Todo PR requiere aprobación de alguien distinto al autor.
+
+**Regla crítica sobre bugs:** no se corrige ningún bug del POS por iniciativa propia (ni de una IA). Todo bug se registra primero como Issue (`BUG-###`), con evidencia y clasificación, y se corrige después en una rama `fix/bug-###` con su propio PR. Todo fix debe incluir un test que primero falle y luego pase, reproduciendo el bug. Los bugs deben ser reales y reproducidos en la app, nunca inventados.
+
+**Convenciones:**
+- Branches: `feat/<tema>`, `fix/bug-<id>`, `test/<tema>`, `docs/<tema>`.
+- IDs: `US-###` (historias de usuario), `TC-<MOD>-###` con MOD en POS, INV, VEN, CFG, DSH (casos de prueba), `BUG-###` (bugs, debe coincidir con el número del issue).
+- Labels de GitHub: tipo (`bug`, `story`, `test`, `docs`, `task`), severidad (`sev:critica|alta|media|baja`), prioridad (`prio:P1|P2|P3`), clasificación (`clase:error|defecto|fallo`), sprint (`sprint:1` a `sprint:4`), área (`area:pos|inv|ven|cfg|dashboard|qa`).
+- Evidencias: `S<sprint>_<tipo>_<id>_<descripcion>.<ext>` (por ejemplo `S3_BUG-004_stock_negativo.png`).
+
+**Testing:**
+- Caja blanca: Vitest (`npm test`, `npm run test:coverage`). La línea base de cobertura la define Jonathan en el Sprint 1.
+- Caja negra E2E: Cypress en la carpeta `e2e/` (la crea Josue). El enfoque final (`mockIPC` de Tauri o `tauri-driver` + Selenium) se decide en el spike del Sprint 1.
+- Para facilitar la automatización, los elementos interactivos críticos deben llevar `data-testid` con nombres estables y en kebab-case (por ejemplo `pos-search-input`, `checkout-confirm-button`).
+
+**Estructura de docs del proyecto QA:** `docs/qa/` (guía del equipo, plan de pruebas, casos, reportes). Los reportes de cobertura y resultados van en `docs/qa/reports/`.
+
+**Uso de IA:** permitido. Cada persona revisa y firma lo que genera, los tests se ejecutan antes de entregarse, y no se inventan bugs.
+
+**Alcance del módulo nuevo (v0.5.0):** dashboard de la aplicación (KPIs) y layouts responsive para pantallas pequeñas. No confundir con el "dashboard de métricas de calidad" del proyecto de QA, que es un entregable aparte hecho en Google Sheets por Maria Jose y no vive en este repo.
