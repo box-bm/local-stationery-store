@@ -17,7 +17,10 @@
     "test:coverage": "vitest run --coverage",
     "test:ci": "vitest run --coverage --reporter=default --reporter=junit --outputFile.junit=./coverage/junit.xml",
     "bump": "node scripts/bump-version.cjs",
-    "next-version": "node scripts/next-version.cjs"
+    "next-version": "node scripts/next-version.cjs",
+    "e2e:open": "cypress open --e2e",
+    "e2e:run": "cypress run --e2e",
+    "e2e": "start-server-and-test dev http://localhost:1420 e2e:run"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
@@ -54,9 +57,11 @@
     "@vitejs/plugin-react": "^4.3.4",
     "@vitest/coverage-v8": "^2.1.9",
     "autoprefixer": "^10.4.20",
+    "cypress": "^13.17.0",
     "jsdom": "^25.0.1",
     "postcss": "^8.4.49",
     "sql.js": "^1.14.2",
+    "start-server-and-test": "^3.0.12",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.7.2",
     "vite": "^6.0.5",

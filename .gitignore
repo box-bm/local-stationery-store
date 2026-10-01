@@ -27,3 +27,6 @@ app-icon.png
 
 # Test coverage reports
 coverage/
+
+# Cypress E2E reports
+e2e/reports/

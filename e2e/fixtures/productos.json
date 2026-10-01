@@ -1,0 +1,45 @@
+{
+  "_comentario": "Productos extra que se insertan además de los 3 de ejemplo que siembra la migración v2 (Papel bond, Lápiz Mongol, Marcador). Cubren los tres estados de stock: ok, low (stock <= min_stock) y out (stock <= 0).",
+  "productos": [
+    {
+      "id": "e2e-cuaderno",
+      "name": "Cuaderno universitario 100 hojas",
+      "barcode": "7502000000010",
+      "category": "Cuadernos",
+      "base_unit_name": "unidad",
+      "purchase_price": 9,
+      "stock": 3,
+      "min_stock": 5,
+      "sell_units": [
+        { "id": "e2e-cuaderno-u", "name": "Unidad", "quantity_in_base_units": 1, "sell_price": 15, "is_default": 1 }
+      ]
+    },
+    {
+      "id": "e2e-borrador",
+      "name": "Borrador blanco",
+      "barcode": "7502000000027",
+      "category": "Útiles",
+      "base_unit_name": "unidad",
+      "purchase_price": 0.75,
+      "stock": 0,
+      "min_stock": 5,
+      "sell_units": [
+        { "id": "e2e-borrador-u", "name": "Unidad", "quantity_in_base_units": 1, "sell_price": 1.5, "is_default": 1 }
+      ]
+    },
+    {
+      "id": "e2e-tijera",
+      "name": "Tijera escolar",
+      "barcode": "7502000000034",
+      "category": "Útiles",
+      "base_unit_name": "unidad",
+      "purchase_price": 6,
+      "stock": 4,
+      "min_stock": 1,
+      "sell_units": [
+        { "id": "e2e-tijera-u", "name": "Unidad", "quantity_in_base_units": 1, "sell_price": 12, "is_default": 1 },
+        { "id": "e2e-tijera-p", "name": "Par", "quantity_in_base_units": 2, "sell_price": 22, "is_default": 0 }
+      ]
+    }
+  ]
+}
