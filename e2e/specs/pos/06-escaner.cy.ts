@@ -41,7 +41,9 @@ describe("POS · Lector de código de barras", () => {
   it("TC-POS-059 el lector se desactiva mientras el modal de unidad está abierto", () => {
     cy.productCard("Tijera escolar").click();
     cy.dialog();
-    cy.scanBarcode("7501000000035");
+    // Fuera del diálogo: así solo se prueba el hook del lector y no el Enter
+    // del propio modal (que confirma la unidad seleccionada).
+    cy.scanBarcode("7501000000035", { on: "body" });
     cy.dialog().contains("button", "Cancelar").click();
     cy.cart().should("contain", "El carrito está vacío");
   });

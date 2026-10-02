@@ -83,7 +83,7 @@ const convert = (sql: string) => sql.replace(/\$(\d+)/g, "?$1");
 
 export function installTauriMock(win: Window, opts: TauriMockOptions) {
   // Evaluar sql.js en el ámbito global de la app define `initSqlJs`.
-  win.eval(opts.sqlJsSource);
+  (win as Window & typeof globalThis).eval(opts.sqlJsSource);
   const initSqlJs = win.initSqlJs;
   if (!initSqlJs) throw new Error("sql.js no se pudo cargar en la ventana");
 

@@ -2,19 +2,13 @@
 // Técnicas: tabla de decisión (método de pago × efectivo × cliente) y
 // transición de estados (carrito con ítems → confirmación → recibo → nueva venta).
 
-const openCheckout = () => {
-  cy.cart().contains("button", "Completar venta").click();
-  return cy.dialog().should("contain", "Total a pagar");
-};
-const chargeButton = () => cy.get('[role="dialog"]').contains("button", /^Cobrar /);
-
 describe("POS · Cobro", () => {
   beforeEach(() => cy.visitApp());
 
   it("TC-POS-039 el modal muestra total, cantidad de productos y métodos de pago habilitados", () => {
     cy.addToCart("Marcador permanente negro", { qty: 2 });
     cy.addToCart("Tijera escolar");
-    openCheckout().within(() => {
+    cy.openCheckout().within(() => {
       cy.contains("h2", "Completar venta");
       cy.contains("2 producto(s) en el carrito");
       cy.contains("p", "Q27.00");
@@ -22,14 +16,14 @@ describe("POS · Cobro", () => {
       cy.contains("button", "Transferencia").should("not.have.class", "border-primary");
       cy.get("#cash").should("be.visible");
       cy.get("#ref").should("not.exist");
-      chargeButton().should("have.text", "Cobrar Q27.00").and("be.enabled");
+      cy.chargeButton().should("have.text", "Cobrar Q27.00").and("be.enabled");
     });
   });
 
   context("Efectivo recibido vs total (Q15.00)", () => {
     beforeEach(() => {
       cy.addToCart("Marcador permanente negro", { qty: 2 });
-      openCheckout();
+      cy.openCheckout();
     });
 
     it("TC-POS-040 mayor al total: muestra el cambio", () => {
@@ -53,10 +47,15 @@ describe("POS · Cobro", () => {
   });
 
   it("TC-POS-044 venta en efectivo completa: recibo, aviso, stock descontado y registro en BD", () => {
+    // Mediodía local: la fecha local y la UTC coinciden (ver H-08 en 99-hallazgos).
+    const noon = new Date();
+    noon.setHours(12, 0, 0, 0);
+    cy.clock(noon.getTime(), ["Date"]);
+    cy.visitApp();
     cy.addToCart("Marcador permanente negro", { qty: 2 });
-    openCheckout();
+    cy.openCheckout();
     cy.get("#cash").type("20");
-    chargeButton().click();
+    cy.chargeButton().click();
 
     cy.dialog().within(() => {
       cy.contains("¡Venta completada!");
@@ -97,14 +96,14 @@ describe("POS · Cobro", () => {
 
   it("TC-POS-045 venta por transferencia con código de autorización, cliente nuevo y notas", () => {
     cy.addToCart("Tijera escolar");
-    openCheckout().within(() => {
+    cy.openCheckout().within(() => {
       cy.contains("button", "Transferencia").click().should("have.class", "border-primary");
       cy.get("#cash").should("not.exist");
       cy.get("#ref").type("AUT-998877");
       cy.get('input[placeholder="Nombre del cliente"]').type("Juan Pérez");
       cy.contains("Crear cliente “Juan Pérez”").should("be.visible");
       cy.get("#notes").type("Entrega en mostrador");
-      chargeButton().click();
+      cy.chargeButton().click();
       cy.contains("¡Venta completada!");
       cy.contains("Cambio").should("not.exist");
     });
@@ -124,19 +123,19 @@ describe("POS · Cobro", () => {
   it("TC-POS-046 autocompleta un cliente existente y numera las ventas correlativamente", () => {
     // Venta 1 crea al cliente.
     cy.addToCart("Marcador permanente negro");
-    openCheckout();
+    cy.openCheckout();
     cy.get('input[placeholder="Nombre del cliente"]').type("María López");
-    chargeButton().click();
+    cy.chargeButton().click();
     cy.dialog().contains("Recibo #1");
     cy.dialog().contains("button", "Nueva venta").click();
 
     // Venta 2 lo reutiliza desde la sugerencia.
     cy.addToCart("Marcador permanente negro");
-    openCheckout();
+    cy.openCheckout();
     cy.get('input[placeholder="Nombre del cliente"]').type("maria");
     cy.dialog().contains("button", "María López").click();
     cy.get('input[placeholder="Nombre del cliente"]').should("have.value", "María López");
-    chargeButton().click();
+    cy.chargeButton().click();
     cy.dialog().contains("Recibo #2");
 
     cy.dbSelect("SELECT COUNT(*) AS n FROM customers").its("0.n").should("eq", 1);
@@ -148,7 +147,7 @@ describe("POS · Cobro", () => {
 
   it("TC-POS-047 Cancelar cierra el cobro sin registrar la venta y conserva el carrito", () => {
     cy.addToCart("Marcador permanente negro", { qty: 2 });
-    openCheckout().contains("button", "Cancelar").click();
+    cy.openCheckout().contains("button", "Cancelar").click();
     cy.get('[role="dialog"]').should("not.exist");
     cy.cart().find("li").should("have.length", 1);
     cy.dbSelect("SELECT COUNT(*) AS n FROM sales").its("0.n").should("eq", 0);
@@ -156,7 +155,7 @@ describe("POS · Cobro", () => {
 
   it("TC-POS-048 Enter en el modal de cobro confirma la venta", () => {
     cy.addToCart("Marcador permanente negro");
-    openCheckout();
+    cy.openCheckout();
     cy.get("#notes").type("rápida{enter}");
     cy.dialog().contains("¡Venta completada!");
   });
@@ -164,8 +163,8 @@ describe("POS · Cobro", () => {
   it("TC-POS-049 vender unidades fraccionarias descuenta la fracción exacta del stock base", () => {
     cy.addToCart("Papel bond carta 80g", { unit: "Resma completa" });
     cy.addToCart("Papel bond carta 80g", { unit: "4 hojas", qty: 2 });
-    openCheckout();
-    chargeButton().should("have.text", "Cobrar Q37.00").click();
+    cy.openCheckout();
+    cy.chargeButton().should("have.text", "Cobrar Q37.00").click();
     cy.dialog().contains("button", "Nueva venta").click();
     cy.productCard("Papel bond carta 80g").should("contain", "3.984 resma");
     cy.dbSelect("SELECT stock FROM products WHERE name = 'Papel bond carta 80g'")
@@ -176,8 +175,8 @@ describe("POS · Cobro", () => {
   context("Transiciones de estado del stock por venta (Tijera: stock 4, mínimo 1)", () => {
     it("TC-POS-050 ok → low: al quedar en el mínimo aparece la alerta de stock bajo", () => {
       cy.addToCart("Tijera escolar", { qty: 3 });
-      openCheckout();
-      chargeButton().click();
+      cy.openCheckout();
+      cy.chargeButton().click();
       cy.dialog().contains("button", "Nueva venta").click();
       cy.productCard("Tijera escolar").should("contain", "1 unidad").and("contain", "Stock bajo");
       cy.contains("2 producto(s) con stock bajo").should("be.visible");
@@ -185,8 +184,8 @@ describe("POS · Cobro", () => {
 
     it("TC-POS-051 ok → out: al vender todo el producto queda agotado y bloqueado", () => {
       cy.addToCart("Tijera escolar", { unit: "Par", qty: 2 });
-      openCheckout();
-      chargeButton().click();
+      cy.openCheckout();
+      cy.chargeButton().click();
       cy.dialog().contains("button", "Nueva venta").click();
       cy.productCard("Tijera escolar").should("contain", "0 unidad").and("contain", "Sin stock");
       cy.contains("2 producto(s) agotado(s)").should("be.visible");
@@ -200,7 +199,7 @@ describe("POS · Cobro", () => {
     it("TC-POS-052 solo transferencia habilitada: se preselecciona y pide el código", () => {
       cy.visitApp({ settings: { paymentMethods: { cash: false, transfer: true } } });
       cy.addToCart("Marcador permanente negro");
-      openCheckout().within(() => {
+      cy.openCheckout().within(() => {
         cy.contains("button", "Efectivo").should("not.exist");
         cy.contains("button", "Transferencia").should("have.class", "border-primary");
         cy.get("#ref").should("be.visible");
@@ -211,9 +210,9 @@ describe("POS · Cobro", () => {
     it("TC-POS-053 sin métodos habilitados: muestra aviso y bloquea el cobro", () => {
       cy.visitApp({ settings: { paymentMethods: { cash: false, transfer: false } } });
       cy.addToCart("Marcador permanente negro");
-      openCheckout().within(() => {
+      cy.openCheckout().within(() => {
         cy.contains("Activá al menos un método de pago en Configuración.").should("be.visible");
-        chargeButton().should("be.disabled");
+        cy.chargeButton().should("be.disabled");
       });
       cy.get("#notes").type("{enter}");
       cy.dialog().should("not.contain", "¡Venta completada!");

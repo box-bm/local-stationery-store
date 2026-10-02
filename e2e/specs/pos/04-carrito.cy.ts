@@ -23,10 +23,10 @@ describe("POS · Carrito", () => {
     cy.cart().contains("button", "Completar venta").should("be.enabled");
   });
 
-  it("TC-POS-031 el buscador se limpia y recupera el foco tras agregar", () => {
+  it("TC-POS-031 el buscador se limpia tras agregar y vuelve a mostrar el catálogo", () => {
     cy.searchProduct("marcador");
     cy.addToCart("Marcador permanente negro");
-    cy.focused().should("have.value", "");
+    cy.get('input[placeholder^="Buscar producto"]').should("have.value", "");
     cy.get("main .grid > button").should("have.length", 6);
   });
 

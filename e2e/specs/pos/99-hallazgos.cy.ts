@@ -7,11 +7,6 @@
 //   3. referenciarse aquí en el título de la prueba: "[BUG-###] ...".
 // El comportamiento esperado de cada caso debe validarlo el Product Owner.
 
-const openCheckout = () => {
-  cy.cart().contains("button", "Completar venta").click();
-  return cy.dialog().should("contain", "Total a pagar");
-};
-const chargeButton = () => cy.get('[role="dialog"]').contains("button", /^Cobrar /);
 const tijeraStock = () => cy.dbSelect("SELECT stock FROM products WHERE id = 'e2e-tijera'").its("0.stock");
 
 describe("POS · Hipótesis de defectos", () => {
@@ -34,28 +29,54 @@ describe("POS · Hipótesis de defectos", () => {
   it("H-03 una venta nunca deja el stock en negativo", () => {
     cy.addToCart("Tijera escolar", { qty: 4 });
     cy.cart().find("li").find("button").eq(2).click(); // intenta 5
-    openCheckout();
-    chargeButton().click();
+    cy.openCheckout();
+    cy.chargeButton().click();
     tijeraStock().should("be.gte", 0);
   });
 
   it("H-04 el lector de código de barras no agrega productos agotados", () => {
     cy.scanBarcode("7502000000027"); // Borrador blanco, stock 0
+    // Se espera el mismo aviso que al hacer clic en la tarjeta del producto agotado.
+    cy.toast("Borrador blanco no tiene stock disponible").should("exist");
     cy.cart().should("contain", "El carrito está vacío");
   });
 
   it("H-05 no se puede cobrar en efectivo si lo recibido es menor al total", () => {
     cy.addToCart("Marcador permanente negro", { qty: 2 }); // Q15.00
-    openCheckout();
+    cy.openCheckout();
     cy.get("#cash").type("10");
-    chargeButton().should("be.disabled");
+    cy.chargeButton().should("be.disabled");
+  });
+
+  it("H-07 tras agregar al carrito el foco vuelve al buscador (flujo con lector/teclado)", () => {
+    // POSScreen llama a searchRef.focus() al confirmar, pero el diálogo de
+    // Radix devuelve el foco al elemento que lo abrió al cerrarse.
+    cy.addToCart("Marcador permanente negro");
+    cy.focused().should("have.attr", "placeholder").and("match", /^Buscar producto/);
+  });
+
+  it("H-08 'Ganancias de hoy' incluye una venta hecha cerca de la medianoche local", function () {
+    // created_at se guarda en UTC (CURRENT_TIMESTAMP) y el filtro usa la fecha
+    // local. Se elige una hora en la que la fecha UTC ya es otra: 23:30 al oeste
+    // de UTC (p. ej. Guatemala, UTC−6) o 00:30 al este.
+    const tzo = new Date().getTimezoneOffset();
+    if (tzo === 0) this.skip(); // en UTC el desfase no existe
+    const t = new Date();
+    t.setHours(tzo > 0 ? 23 : 0, 30, 0, 0);
+    cy.clock(t.getTime(), ["Date"]);
+    cy.visitApp();
+    cy.addToCart("Marcador permanente negro"); // ganancia Q3.50
+    cy.openCheckout();
+    cy.chargeButton().click();
+    cy.dialog().contains("button", "Nueva venta").click();
+    cy.contains("Ganancias de hoy").next().should("have.text", "Q3.50");
   });
 
   it("H-06 una transferencia exige código de autorización", () => {
     cy.addToCart("Marcador permanente negro");
-    openCheckout();
+    cy.openCheckout();
     cy.dialog().contains("button", "Transferencia").click();
     cy.get("#ref").should("have.value", "");
-    chargeButton().should("be.disabled");
+    cy.chargeButton().should("be.disabled");
   });
 });
