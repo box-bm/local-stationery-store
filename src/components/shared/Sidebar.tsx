@@ -7,6 +7,7 @@ import {
   HelpCircle,
   PanelLeftClose,
   PanelLeft,
+  BarChart3,
 } from "lucide-react";
 import { useAppStore, type Screen } from "@/stores/app";
 import { useSettingsStore } from "@/stores/settings";
@@ -18,6 +19,7 @@ const NAV: { id: Screen; key: TranslationKey; icon: typeof ShoppingCart }[] = [
   { id: "pos", key: "nav.pos", icon: ShoppingCart },
   { id: "inventory", key: "nav.inventory", icon: Package },
   { id: "sales", key: "nav.sales", icon: Receipt },
+  { id: "dashboard", key: "nav.dashboard", icon: BarChart3 },
 ];
 
 interface Props {

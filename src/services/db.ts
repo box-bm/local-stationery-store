@@ -555,6 +555,23 @@ export interface DateRange {
   to?: string; // ISO date (inclusive)
 }
 
+export interface DashboardFilters {
+  productId?: string;
+  paymentMethod?: string;
+  customerId?: string;
+}
+
+function dashboardWhere(range?: DateRange, filters?: DashboardFilters): { clause: string; params: string[] } {
+  const params: string[] = [];
+  const parts: string[] = [];
+  if (range?.from) { params.push(range.from); parts.push(`s.created_at >= $${params.length}`); }
+  if (range?.to) { params.push(range.to + " 23:59:59"); parts.push(`s.created_at <= $${params.length}`); }
+  if (filters?.paymentMethod) { params.push(filters.paymentMethod); parts.push(`s.payment_method = $${params.length}`); }
+  if (filters?.customerId) { params.push(filters.customerId); parts.push(`s.customer_id = $${params.length}`); }
+  if (filters?.productId) { params.push(filters.productId); parts.push(`EXISTS (SELECT 1 FROM sale_items fp WHERE fp.sale_id = s.id AND fp.product_id = $${params.length})`); }
+  return { clause: parts.length ? `WHERE ${parts.join(" AND ")}` : "", params };
+}
+
 function dateWhere(range?: DateRange): { clause: string; params: string[] } {
   const params: string[] = [];
   const parts: string[] = [];
@@ -622,10 +639,11 @@ export async function getSaleItems(saleId: string): Promise<SaleItem[]> {
 }
 
 export async function getSalesSummary(
-  range?: DateRange
+  range?: DateRange,
+  filters?: DashboardFilters
 ): Promise<{ count: number; total: number; profit: number }> {
   const db = await getDb();
-  const { clause, params } = dateWhere(range);
+  const { clause, params } = dashboardWhere(range, filters);
   const rows = await db.select<{ count: number; total: number; cost: number }[]>(
     `SELECT COUNT(*) AS count, COALESCE(SUM(s.total), 0) AS total,
             COALESCE(SUM(
@@ -648,10 +666,11 @@ const SEGMENT_FORMAT: Record<SalesSegmentGranularity, string> = {
 /** Sales aggregated into day/week/month/year buckets, most recent first. */
 export async function getSalesSegments(
   range: DateRange | undefined,
-  granularity: SalesSegmentGranularity
+  granularity: SalesSegmentGranularity,
+  filters?: DashboardFilters
 ): Promise<SalesSegment[]> {
   const db = await getDb();
-  const { clause, params } = dateWhere(range);
+  const { clause, params } = dashboardWhere(range, filters);
   const fmt = SEGMENT_FORMAT[granularity];
   const rows = await db.select<
     { period: string; count: number; total: number; cost: number }[]
@@ -676,6 +695,35 @@ export async function getSalesSegments(
     total: r.total,
     profit: r.total - r.cost,
   }));
+}
+
+export interface TopProduct {
+  product_name: string;
+  quantity: number;
+  revenue: number;
+  profit: number;
+}
+
+/** Products ranked by units sold in a date range for dashboard/reporting views. */
+export async function getTopProducts(range?: DateRange, limit = 5): Promise<TopProduct[]> {
+  return getTopProductsFiltered(range, undefined, limit);
+}
+
+export async function getTopProductsFiltered(range?: DateRange, filters?: DashboardFilters, limit = 5): Promise<TopProduct[]> {
+  const db = await getDb();
+  const { clause, params } = dashboardWhere(range, filters);
+  return db.select<TopProduct[]>(
+    `SELECT si.product_name, SUM(si.quantity) AS quantity,
+            SUM(si.subtotal) AS revenue,
+            SUM(si.subtotal - si.cost_total) AS profit
+       FROM sale_items si
+       JOIN sales s ON s.id = si.sale_id
+       ${clause.replace(/created_at/g, "s.created_at")}
+       GROUP BY si.product_id, si.product_name
+       ORDER BY quantity DESC, revenue DESC
+       LIMIT $${params.length + 1}`,
+    [...params, limit]
+  );
 }
 
 // ---------------------------------------------------------------------------

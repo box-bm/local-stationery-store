@@ -7,6 +7,7 @@ import { POSScreen } from "@/components/pos/POSScreen";
 import { InventoryScreen } from "@/components/inventory/InventoryScreen";
 import { SalesScreen } from "@/components/sales/SalesScreen";
 import { SettingsScreen } from "@/components/settings/SettingsScreen";
+import { DashboardScreen } from "@/components/dashboard/DashboardScreen";
 import { ApplySyncModal } from "@/components/settings/ApplySyncModal";
 import { useAppStore } from "@/stores/app";
 import { useSettingsStore } from "@/stores/settings";
@@ -77,6 +78,7 @@ export default function App() {
         {screen === "pos" && <POSScreen />}
         {screen === "inventory" && <InventoryScreen />}
         {screen === "sales" && <SalesScreen />}
+        {screen === "dashboard" && <DashboardScreen />}
         {screen === "settings" && (
           <SettingsScreen onShowGuide={() => setShowGuide(true)} />
         )}
