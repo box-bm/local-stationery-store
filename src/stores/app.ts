@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { countStockAlerts } from "@/services/db";
 
-export type Screen = "pos" | "inventory" | "sales" | "settings";
+export type Screen = "pos" | "inventory" | "sales" | "dashboard" | "settings";
 
 interface AppState {
   screen: Screen;
