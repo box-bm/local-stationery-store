@@ -1,3 +1,5 @@
+import { tc } from "../../support/qase";
+
 // Punto de venta: flujo de cobro (CheckoutModal), recibo y efectos en stock/BD.
 // Técnicas: tabla de decisión (método de pago × efectivo × cliente) y
 // transición de estados (carrito con ítems → confirmación → recibo → nueva venta).
@@ -5,7 +7,7 @@
 describe("POS · Cobro", () => {
   beforeEach(() => cy.visitApp());
 
-  it("TC-POS-039 el modal muestra total, cantidad de productos y métodos de pago habilitados", () => {
+  it(tc("TC-POS-039 el modal muestra total, cantidad de productos y métodos de pago habilitados"), () => {
     cy.addToCart("Marcador permanente negro", { qty: 2 });
     cy.addToCart("Tijera escolar");
     cy.openCheckout().within(() => {
@@ -26,27 +28,27 @@ describe("POS · Cobro", () => {
       cy.openCheckout();
     });
 
-    it("TC-POS-040 mayor al total: muestra el cambio", () => {
+    it(tc("TC-POS-040 mayor al total: muestra el cambio"), () => {
       cy.get("#cash").type("20");
       cy.dialog().contains("Cambio: Q5.00").should("not.have.class", "text-destructive");
     });
 
-    it("TC-POS-041 igual al total: cambio Q0.00", () => {
+    it(tc("TC-POS-041 igual al total: cambio Q0.00"), () => {
       cy.get("#cash").type("15");
       cy.dialog().contains("Cambio: Q0.00");
     });
 
-    it("TC-POS-042 menor al total: indica cuánto falta en rojo", () => {
+    it(tc("TC-POS-042 menor al total: indica cuánto falta en rojo"), () => {
       cy.get("#cash").type("10");
       cy.dialog().contains("Faltan Q5.00").should("have.class", "text-destructive");
     });
 
-    it("TC-POS-043 vacío: no muestra cambio ni faltante", () => {
+    it(tc("TC-POS-043 vacío: no muestra cambio ni faltante"), () => {
       cy.dialog().should("not.contain", "Cambio:").and("not.contain", "Faltan");
     });
   });
 
-  it("TC-POS-044 venta en efectivo completa: recibo, aviso, stock descontado y registro en BD", () => {
+  it(tc("TC-POS-044 venta en efectivo completa: recibo, aviso, stock descontado y registro en BD"), () => {
     // Mediodía local: la fecha local y la UTC coinciden (ver H-08 en 99-hallazgos).
     const noon = new Date();
     noon.setHours(12, 0, 0, 0);
@@ -94,7 +96,7 @@ describe("POS · Cobro", () => {
     });
   });
 
-  it("TC-POS-045 venta por transferencia con código de autorización, cliente nuevo y notas", () => {
+  it(tc("TC-POS-045 venta por transferencia con código de autorización, cliente nuevo y notas"), () => {
     cy.addToCart("Tijera escolar");
     cy.openCheckout().within(() => {
       cy.contains("button", "Transferencia").click().should("have.class", "border-primary");
@@ -120,7 +122,7 @@ describe("POS · Cobro", () => {
     cy.dbSelect("SELECT name FROM customers").should("deep.equal", [{ name: "Juan Pérez" }]);
   });
 
-  it("TC-POS-046 autocompleta un cliente existente y numera las ventas correlativamente", () => {
+  it(tc("TC-POS-046 autocompleta un cliente existente y numera las ventas correlativamente"), () => {
     // Venta 1 crea al cliente.
     cy.addToCart("Marcador permanente negro");
     cy.openCheckout();
@@ -145,7 +147,7 @@ describe("POS · Cobro", () => {
     ]);
   });
 
-  it("TC-POS-047 Cancelar cierra el cobro sin registrar la venta y conserva el carrito", () => {
+  it(tc("TC-POS-047 Cancelar cierra el cobro sin registrar la venta y conserva el carrito"), () => {
     cy.addToCart("Marcador permanente negro", { qty: 2 });
     cy.openCheckout().contains("button", "Cancelar").click();
     cy.get('[role="dialog"]').should("not.exist");
@@ -153,14 +155,14 @@ describe("POS · Cobro", () => {
     cy.dbSelect("SELECT COUNT(*) AS n FROM sales").its("0.n").should("eq", 0);
   });
 
-  it("TC-POS-048 Enter en el modal de cobro confirma la venta", () => {
+  it(tc("TC-POS-048 Enter en el modal de cobro confirma la venta"), () => {
     cy.addToCart("Marcador permanente negro");
     cy.openCheckout();
     cy.get("#notes").type("rápida{enter}");
     cy.dialog().contains("¡Venta completada!");
   });
 
-  it("TC-POS-049 vender unidades fraccionarias descuenta la fracción exacta del stock base", () => {
+  it(tc("TC-POS-049 vender unidades fraccionarias descuenta la fracción exacta del stock base"), () => {
     cy.addToCart("Papel bond carta 80g", { unit: "Resma completa" });
     cy.addToCart("Papel bond carta 80g", { unit: "4 hojas", qty: 2 });
     cy.openCheckout();
@@ -173,7 +175,7 @@ describe("POS · Cobro", () => {
   });
 
   context("Transiciones de estado del stock por venta (Tijera: stock 4, mínimo 1)", () => {
-    it("TC-POS-050 ok → low: al quedar en el mínimo aparece la alerta de stock bajo", () => {
+    it(tc("TC-POS-050 ok → low: al quedar en el mínimo aparece la alerta de stock bajo"), () => {
       cy.addToCart("Tijera escolar", { qty: 3 });
       cy.openCheckout();
       cy.chargeButton().click();
@@ -182,7 +184,7 @@ describe("POS · Cobro", () => {
       cy.contains("2 producto(s) con stock bajo").should("be.visible");
     });
 
-    it("TC-POS-051 ok → out: al vender todo el producto queda agotado y bloqueado", () => {
+    it(tc("TC-POS-051 ok → out: al vender todo el producto queda agotado y bloqueado"), () => {
       cy.addToCart("Tijera escolar", { unit: "Par", qty: 2 });
       cy.openCheckout();
       cy.chargeButton().click();
@@ -196,7 +198,7 @@ describe("POS · Cobro", () => {
   });
 
   context("Métodos de pago según Configuración", () => {
-    it("TC-POS-052 solo transferencia habilitada: se preselecciona y pide el código", () => {
+    it(tc("TC-POS-052 solo transferencia habilitada: se preselecciona y pide el código"), () => {
       cy.visitApp({ settings: { paymentMethods: { cash: false, transfer: true } } });
       cy.addToCart("Marcador permanente negro");
       cy.openCheckout().within(() => {
@@ -207,7 +209,7 @@ describe("POS · Cobro", () => {
       });
     });
 
-    it("TC-POS-053 sin métodos habilitados: muestra aviso y bloquea el cobro", () => {
+    it(tc("TC-POS-053 sin métodos habilitados: muestra aviso y bloquea el cobro"), () => {
       cy.visitApp({ settings: { paymentMethods: { cash: false, transfer: false } } });
       cy.addToCart("Marcador permanente negro");
       cy.openCheckout().within(() => {

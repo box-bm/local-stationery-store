@@ -30,3 +30,4 @@ coverage/
 
 # Cypress E2E reports
 e2e/reports/
+build/qase-report/

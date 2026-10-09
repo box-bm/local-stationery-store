@@ -20,7 +20,10 @@
     "next-version": "node scripts/next-version.cjs",
     "e2e:open": "cypress open --e2e",
     "e2e:run": "cypress run --e2e",
-    "e2e": "start-server-and-test dev http://localhost:1420 e2e:run"
+    "e2e": "start-server-and-test dev http://localhost:1420 e2e:run",
+    "qase:dry": "node e2e/qase/sync-cases.mjs --dry-run",
+    "qase:sync": "node e2e/qase/sync-cases.mjs",
+    "qase:csv": "node e2e/qase/sync-cases.mjs --csv e2e/reports/qase-casos.csv"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
@@ -58,7 +61,10 @@
     "@vitest/coverage-v8": "^2.1.9",
     "autoprefixer": "^10.4.20",
     "cypress": "^13.17.0",
+    "cypress-multi-reporters": "^2.0.5",
+    "cypress-qase-reporter": "^3.7.0",
     "jsdom": "^25.0.1",
+    "mocha": "^12.0.3",
     "postcss": "^8.4.49",
     "sql.js": "^1.14.2",
     "start-server-and-test": "^3.0.12",

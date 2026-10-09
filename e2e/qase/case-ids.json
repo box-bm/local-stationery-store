@@ -1,0 +1,114 @@
+{
+  "project": "QLP",
+  "suites": {
+    "Punto de venta · E2E Cypress": 7,
+    "POS · Carga inicial": 8,
+    "POS · Búsqueda y filtros": 9,
+    "POS · Unidad de venta y cantidad": 10,
+    "POS · Carrito": 11,
+    "POS · Cobro": 12,
+    "POS · Lector de código de barras": 13,
+    "POS · Pantalla angosta": 14,
+    "POS · Hipótesis de defectos": 15
+  },
+  "cases": {
+    "TC-POS-001": 12,
+    "TC-POS-002": 13,
+    "TC-POS-003": 14,
+    "TC-POS-004": 15,
+    "TC-POS-005": 16,
+    "TC-POS-006": 17,
+    "TC-POS-007": 18,
+    "TC-POS-008": 19,
+    "TC-POS-009": 20,
+    "TC-POS-010": 21,
+    "TC-POS-011": 22,
+    "TC-POS-012": 23,
+    "TC-POS-013": 24,
+    "TC-POS-014": 25,
+    "TC-POS-015": 26,
+    "TC-POS-016": 27,
+    "TC-POS-017": 28,
+    "TC-POS-018": 29,
+    "TC-POS-019": 30,
+    "TC-POS-020": 31,
+    "TC-POS-021": 32,
+    "TC-POS-022": 33,
+    "TC-POS-023": 34,
+    "TC-POS-024": 35,
+    "TC-POS-025": 36,
+    "TC-POS-026": 37,
+    "TC-POS-027": 38,
+    "TC-POS-028": 39,
+    "TC-POS-029": 40,
+    "TC-POS-030": 41,
+    "TC-POS-031": 42,
+    "TC-POS-032": 43,
+    "TC-POS-033": 44,
+    "TC-POS-034": 45,
+    "TC-POS-035": 46,
+    "TC-POS-036": 47,
+    "TC-POS-037": 48,
+    "TC-POS-038": 49,
+    "TC-POS-039": 50,
+    "TC-POS-040": 51,
+    "TC-POS-041": 52,
+    "TC-POS-042": 53,
+    "TC-POS-043": 54,
+    "TC-POS-044": 55,
+    "TC-POS-045": 56,
+    "TC-POS-046": 57,
+    "TC-POS-047": 58,
+    "TC-POS-048": 59,
+    "TC-POS-049": 60,
+    "TC-POS-050": 61,
+    "TC-POS-051": 62,
+    "TC-POS-052": 63,
+    "TC-POS-053": 64,
+    "TC-POS-054": 65,
+    "TC-POS-055": 66,
+    "TC-POS-056": 67,
+    "TC-POS-057": 68,
+    "TC-POS-058": 69,
+    "TC-POS-059": 70,
+    "TC-POS-060": 71,
+    "TC-POS-061": 72,
+    "TC-POS-062": 73,
+    "TC-POS-063": 74,
+    "H-01": 75,
+    "H-02": 76,
+    "H-03": 77,
+    "H-04": 78,
+    "H-05": 79,
+    "H-06": 80,
+    "H-07": 81,
+    "H-08": 82
+  },
+  "links": {
+    "_comentario": "Casos manuales ya existentes en Qase que también reciben el resultado de la prueba automatizada equivalente (código → IDs de Qase).",
+    "TC-POS-001": [
+      1
+    ],
+    "TC-POS-002": [
+      1
+    ],
+    "TC-POS-003": [
+      1
+    ],
+    "TC-POS-004": [
+      1
+    ],
+    "TC-POS-005": [
+      1
+    ],
+    "TC-POS-007": [
+      7
+    ],
+    "TC-POS-030": [
+      8
+    ],
+    "TC-POS-044": [
+      11
+    ]
+  }
+}

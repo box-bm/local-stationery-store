@@ -1,3 +1,5 @@
+import { tc } from "../../support/qase";
+
 // Punto de venta: carrito (agregar, combinar líneas, cantidades, quitar, vaciar, totales).
 
 /** Línea del carrito que contiene el texto dado. */
@@ -10,7 +12,7 @@ const cartProfit = () => cy.cart().contains("span", "Total ganancias en esta ven
 describe("POS · Carrito", () => {
   beforeEach(() => cy.visitApp());
 
-  it("TC-POS-030 agregar un producto muestra aviso, la línea, el total y la ganancia", () => {
+  it(tc("TC-POS-030 agregar un producto muestra aviso, la línea, el total y la ganancia"), () => {
     cy.addToCart("Marcador permanente negro");
     cy.toast("Marcador permanente negro agregado al carrito").should("be.visible");
     line("Marcador permanente negro").within(() => {
@@ -23,14 +25,14 @@ describe("POS · Carrito", () => {
     cy.cart().contains("button", "Completar venta").should("be.enabled");
   });
 
-  it("TC-POS-031 el buscador se limpia tras agregar y vuelve a mostrar el catálogo", () => {
+  it(tc("TC-POS-031 el buscador se limpia tras agregar y vuelve a mostrar el catálogo"), () => {
     cy.searchProduct("marcador");
     cy.addToCart("Marcador permanente negro");
     cy.get('input[placeholder^="Buscar producto"]').should("have.value", "");
     cy.get("main .grid > button").should("have.length", 6);
   });
 
-  it("TC-POS-032 el mismo producto con la misma unidad se combina en una sola línea", () => {
+  it(tc("TC-POS-032 el mismo producto con la misma unidad se combina en una sola línea"), () => {
     cy.addToCart("Marcador permanente negro", { qty: 2 });
     cy.addToCart("Marcador permanente negro", { qty: 3 });
     cy.cart().find("li").should("have.length", 1);
@@ -38,7 +40,7 @@ describe("POS · Carrito", () => {
     cartTotal().should("have.text", "Q37.50");
   });
 
-  it("TC-POS-033 el mismo producto con distinta unidad genera líneas separadas", () => {
+  it(tc("TC-POS-033 el mismo producto con distinta unidad genera líneas separadas"), () => {
     cy.addToCart("Tijera escolar");
     cy.addToCart("Tijera escolar", { unit: "Par" });
     cy.cart().find("li").should("have.length", 2);
@@ -47,7 +49,7 @@ describe("POS · Carrito", () => {
     cartTotal().should("have.text", "Q34.00");
   });
 
-  it("TC-POS-034 los botones + y − de la línea actualizan cantidad, subtotal y total", () => {
+  it(tc("TC-POS-034 los botones + y − de la línea actualizan cantidad, subtotal y total"), () => {
     cy.addToCart("Marcador permanente negro");
     lineButton("Marcador permanente negro", 2).click().click();
     line("Marcador permanente negro").contains("span", /^3$/);
@@ -58,7 +60,7 @@ describe("POS · Carrito", () => {
     cartTotal().should("have.text", "Q15.00");
   });
 
-  it("TC-POS-035 bajar la cantidad de 1 a 0 elimina la línea", () => {
+  it(tc("TC-POS-035 bajar la cantidad de 1 a 0 elimina la línea"), () => {
     cy.addToCart("Marcador permanente negro");
     lineButton("Marcador permanente negro", 1).click();
     cy.cart().find("li").should("not.exist");
@@ -66,7 +68,7 @@ describe("POS · Carrito", () => {
     cy.cart().contains("button", "Completar venta").should("be.disabled");
   });
 
-  it("TC-POS-036 el botón quitar elimina solo esa línea", () => {
+  it(tc("TC-POS-036 el botón quitar elimina solo esa línea"), () => {
     cy.addToCart("Marcador permanente negro");
     cy.addToCart("Tijera escolar");
     lineButton("Marcador permanente negro", 0).click();
@@ -74,7 +76,7 @@ describe("POS · Carrito", () => {
     cartTotal().should("have.text", "Q12.00");
   });
 
-  it("TC-POS-037 'Vaciar' elimina todas las líneas y reinicia el total", () => {
+  it(tc("TC-POS-037 'Vaciar' elimina todas las líneas y reinicia el total"), () => {
     cy.addToCart("Marcador permanente negro");
     cy.addToCart("Tijera escolar");
     cy.cart().contains("button", "Vaciar").click();
@@ -83,7 +85,7 @@ describe("POS · Carrito", () => {
     cy.cart().contains("button", "Vaciar").should("not.exist");
   });
 
-  it("TC-POS-038 calcula total y ganancia con varios productos y unidades fraccionarias", () => {
+  it(tc("TC-POS-038 calcula total y ganancia con varios productos y unidades fraccionarias"), () => {
     cy.addToCart("Marcador permanente negro", { qty: 2 }); // 15.00, costo 8.00
     cy.addToCart("Lápiz Mongol #2", { qty: 3 }); // 3 × Q2.00 = 6.00, costo 18 × 0.08333333 × 3 ≈ 4.50
     cy.addToCart("Papel bond carta 80g", { unit: "Resma completa" }); // 35.00, costo 25.00
