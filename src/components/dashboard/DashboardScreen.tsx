@@ -1,40 +1,18 @@
 import { useEffect, useState } from "react";
-import { BarChart3, CircleDot, LineChart, PieChart, TrendingUp, WalletCards, ShoppingBag } from "lucide-react";
+import { BarChart3, CircleDot, LineChart, PieChart, TrendingUp, WalletCards, ShoppingBag, CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { getSalesSegments, getSalesSummary, getTopProductsFiltered, listCustomersWithCounts, listProducts, type DashboardFilters, type DateRange, type TopProduct } from "@/services/db";
 import type { Product } from "@/types";
 import type { SalesSegment } from "@/types";
 import { formatQ } from "@/lib/utils";
+import { useT } from "@/i18n";
 
 type ChartType = "bar" | "line" | "pie" | "donut";
-const russianLabels: Record<string, string> = {
-  title: "Панель продаж",
-  subtitle: "Визуальный обзор эффективности бизнеса",
-  from: "С",
-  to: "По",
-  apply: "Применить",
-  sales: "Продажи",
-  revenue: "Доход",
-  profit: "Прибыль",
-  topProducts: "Самые продаваемые товары",
-  salesTrend: "Продажи по периодам",
-  noData: "Нет данных за этот период",
-  product: "Товар",
-  payment: "Способ оплаты",
-  customer: "Клиент",
-  allProducts: "Все товары",
-  allPayments: "Все способы",
-  allCustomers: "Все клиенты",
-  bar: "Столбцы",
-  line: "Линии",
-  pie: "Круг",
-  donut: "Пончик",
-  units: "единиц",
-};
 
 function localISO(d: Date) { const tz = d.getTimezoneOffset() * 60000; return new Date(d.getTime() - tz).toISOString().slice(0, 10); }
 function monthRange(): DateRange { const now = new Date(); return { from: localISO(new Date(now.getFullYear(), now.getMonth(), 1)), to: localISO(now) }; }
 
 export function DashboardScreen() {
+  const t = useT();
   const initial = monthRange();
   const [from, setFrom] = useState(initial.from ?? "");
   const [to, setTo] = useState(initial.to ?? "");
@@ -68,26 +46,34 @@ export function DashboardScreen() {
   ];
   const chartMaxTotal = Math.max(...chartSegments.map((s) => s.total), 1);
 
-  return <section className="relative h-full overflow-y-auto bg-[#f4ead7] p-6 text-[#3c2415]"><div className="pointer-events-none absolute inset-0 opacity-70 [background-image:radial-gradient(#c45432_1.5px,transparent_1.5px)] [background-size:19px_19px]" /><div className="relative mx-auto max-w-7xl space-y-6">
-    <header className="flex flex-wrap items-end justify-between gap-4"><div><h1 className="text-2xl font-black uppercase tracking-widest">{russianLabels.title}</h1><p className="text-sm text-[#884b38]">{russianLabels.subtitle}</p></div>
+  return <section className="relative h-full overflow-y-auto p-6"><div className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(to_right,hsl(var(--border)/.22)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/.22)_1px,transparent_1px)] [background-size:32px_32px] [mask-image:radial-gradient(ellipse_at_center,black,transparent_78%)]" /><div className="relative mx-auto max-w-7xl space-y-6">
+    <header className="flex flex-wrap items-end justify-between gap-4"><div><h1 className="text-2xl font-bold">{t("dashboard.title")}</h1><p className="text-sm text-muted-foreground">{t("dashboard.subtitle")}</p></div>
       <form className="flex flex-wrap items-end gap-2" onSubmit={(e) => { e.preventDefault(); setRange({ from: from || undefined, to: to || undefined }); }}>
-        <label className="text-xs font-bold text-[#884b38]">{russianLabels.from}<input className="mt-1 block rounded-none border-2 border-[#c45432] bg-[#fff8e9] px-2 py-1.5 text-sm" type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></label>
-        <label className="text-xs font-bold text-[#884b38]">{russianLabels.to}<input className="mt-1 block rounded-none border-2 border-[#c45432] bg-[#fff8e9] px-2 py-1.5 text-sm" type="date" value={to} onChange={(e) => setTo(e.target.value)} /></label>
-        <button className="rounded-none border-2 border-[#3c2415] bg-[#c45432] px-4 py-2 text-sm font-black uppercase text-[#fff8e9]">{russianLabels.apply}</button>
+        <CalendarField label={t("dashboard.from")} value={from} onChange={setFrom} />
+        <CalendarField label={t("dashboard.to")} value={to} onChange={setTo} />
+        <button className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">{t("dashboard.apply")}</button>
       </form>
     </header>
-    <div className="flex flex-wrap gap-2 border-4 border-[#3c2415] bg-[#fff8e9] p-3 shadow-[8px_8px_0_#c45432]"><select aria-label={russianLabels.product} className="rounded-none border-2 border-[#3c2415] bg-[#fff8e9] px-3 py-2 text-sm" value={filters.productId ?? ""} onChange={(e) => setFilters((f) => ({ ...f, productId: e.target.value || undefined }))}><option value="">{russianLabels.allProducts}</option>{products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select><select aria-label={russianLabels.payment} className="rounded-none border-2 border-[#3c2415] bg-[#fff8e9] px-3 py-2 text-sm" value={filters.paymentMethod ?? ""} onChange={(e) => setFilters((f) => ({ ...f, paymentMethod: e.target.value || undefined }))}><option value="">{russianLabels.allPayments}</option><option value="cash">Наличные</option><option value="card">Карта</option><option value="transfer">Перевод</option></select><select aria-label={russianLabels.customer} className="rounded-none border-2 border-[#3c2415] bg-[#fff8e9] px-3 py-2 text-sm" value={filters.customerId ?? ""} onChange={(e) => setFilters((f) => ({ ...f, customerId: e.target.value || undefined }))}><option value="">{russianLabels.allCustomers}</option>{customers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
-    <div className="grid gap-4 sm:grid-cols-3"><Metric icon={<ShoppingBag />} label={russianLabels.sales} value={String(summary.count)} /><Metric icon={<WalletCards />} label={russianLabels.revenue} value={formatQ(summary.total)} /><Metric icon={<TrendingUp />} label={russianLabels.profit} value={formatQ(summary.profit)} accent /></div>
-    <Panel title={russianLabels.salesTrend}><div className="mb-4 flex flex-wrap gap-2">{(["bar", "line", "pie", "donut"] as ChartType[]).map((id) => { const Icon = id === "bar" ? BarChart3 : id === "line" ? LineChart : id === "pie" ? PieChart : CircleDot; return <button key={id} type="button" aria-label={russianLabels[id]} onClick={() => setChart(id)} className={`flex items-center gap-2 rounded-none border-2 border-[#3c2415] px-3 py-2 text-sm font-bold ${chart === id ? "bg-[#3c2415] text-[#fff8e9]" : "bg-[#e8b04b] text-[#3c2415]"}`}><Icon className="h-4 w-4" />{russianLabels[id]}</button>; })}</div><Chart type={({ bar: "donut", line: "bar", pie: "line", donut: "pie" } as Record<ChartType, ChartType>)[chart]} segments={chartSegments} maxTotal={chartMaxTotal} noData={russianLabels.noData} /></Panel>
-       <Panel className="lg:col-span-2" title={russianLabels.topProducts}><div className="space-y-4">{top.length ? top.map((p, i) => <div key={p.product_name}><div className="mb-1 flex justify-between gap-2 text-sm"><span className="truncate">{i + 1}. {p.product_name}</span><span className="text-[#884b38]">{p.quantity} {russianLabels.units}</span></div><div className="h-2 rounded-none bg-[#e8b04b]"><div className="h-2 rounded-none bg-[#c45432]" style={{ width: `${(p.quantity / maxUnits) * 100}%` }} /></div></div>) : <p className="text-sm text-[#884b38]">{russianLabels.noData}</p>}</div></Panel>
+    <div className="flex flex-wrap gap-2 rounded-xl border bg-card/80 p-3 shadow-sm backdrop-blur"><select aria-label={t("dashboard.productFilter")} className="rounded-md border bg-background px-3 py-2 text-sm" value={filters.productId ?? ""} onChange={(e) => setFilters((f) => ({ ...f, productId: e.target.value || undefined }))}><option value="">{t("dashboard.allProducts")}</option>{products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select><select aria-label={t("dashboard.paymentFilter")} className="rounded-md border bg-background px-3 py-2 text-sm" value={filters.paymentMethod ?? ""} onChange={(e) => setFilters((f) => ({ ...f, paymentMethod: e.target.value || undefined }))}><option value="">{t("dashboard.allPayments")}</option><option value="cash">{t("checkout.cash")}</option><option value="card">{t("checkout.card")}</option><option value="transfer">{t("checkout.transfer")}</option></select><select aria-label={t("dashboard.customerFilter")} className="rounded-md border bg-background px-3 py-2 text-sm" value={filters.customerId ?? ""} onChange={(e) => setFilters((f) => ({ ...f, customerId: e.target.value || undefined }))}><option value="">{t("dashboard.allCustomers")}</option>{customers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
+    <div className="grid gap-4 sm:grid-cols-3"><Metric icon={<ShoppingBag />} label={t("dashboard.sales")} value={summary.count} /><Metric icon={<WalletCards />} label={t("dashboard.revenue")} value={summary.total} currency /><Metric icon={<TrendingUp />} label={t("dashboard.profit")} value={summary.profit} currency accent /></div>
+    <Panel title={t("dashboard.salesTrend")}><div className="mb-4 flex flex-wrap gap-2">{(["bar", "line", "pie", "donut"] as ChartType[]).map((id) => { const Icon = id === "bar" ? BarChart3 : id === "line" ? LineChart : id === "pie" ? PieChart : CircleDot; return <button key={id} type="button" aria-label={t(`dashboard.chart.${id}`)} onClick={() => setChart(id)} className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm ${chart === id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}><Icon className="h-4 w-4" />{t(`dashboard.chart.${id}`)}</button>; })}</div><div key={`${chart}-${range.from}-${range.to}`} className="animate-[fade-in-up_500ms_ease-out]"><Chart type={chart} segments={chartSegments} maxTotal={chartMaxTotal} noData={t("dashboard.noData")} /></div></Panel>
+       <Panel className="lg:col-span-2" title={t("dashboard.topProducts")}><div className="space-y-4">{top.length ? top.map((p, i) => <div key={p.product_name}><div className="mb-1 flex justify-between gap-2 text-sm"><span className="truncate">{i + 1}. {p.product_name}</span><span className="text-muted-foreground">{p.quantity} {t("dashboard.units")}</span></div><div className="h-2 rounded-full bg-muted"><div className="h-2 rounded-full bg-emerald-500" style={{ width: `${(p.quantity / maxUnits) * 100}%` }} /></div></div>) : <p className="text-sm text-muted-foreground">{t("dashboard.noData")}</p>}</div></Panel>
   </div></section>;
 }
 
 function Chart({ type, segments, maxTotal, noData }: { type: ChartType; segments: SalesSegment[]; maxTotal: number; noData: string }) {
   if (!segments.length) return <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">{noData}</div>;
-  if (type === "pie" || type === "donut") { const total = segments.reduce((sum, s) => sum + s.total, 0); let cursor = 0; const colors = ["#c45432", "#e8b04b", "#5d7c56", "#8f5b3b", "#2e4057"]; const stops = segments.map((s, i) => { const start = cursor; cursor += (s.total / Math.max(total, 1)) * 120; return `${colors[i % colors.length]} ${start}% ${cursor}%`; }).join(", "); return <div className="flex h-64 items-center justify-center gap-8 bg-[#fff8e9] p-4"><div className={`h-52 w-52 rounded-[18%] border-4 border-[#3c2415] ${type === "donut" ? "p-8" : ""}`} style={{ background: `conic-gradient(${stops})`, transform: "rotate(17deg)" }}>{type === "donut" && <div className="h-full w-full rounded-full bg-[#f4ead7]" />}</div></div>; }
+  if (type === "pie" || type === "donut") { const total = segments.reduce((sum, s) => sum + s.total, 0); let cursor = 0; const colors = ["#0ea5e9", "#14b8a6", "#8b5cf6", "#f59e0b", "#ef4444"]; const stops = segments.map((s, i) => { const start = cursor; cursor += (s.total / Math.max(total, 1)) * 120; return `${colors[i % colors.length]} ${start}% ${cursor}%`; }).join(", "); return <div className="flex h-64 items-center justify-center gap-8"><div className={`h-52 w-52 rounded-full ${type === "donut" ? "p-8" : ""}`} style={{ background: `conic-gradient(${stops})` }}>{type === "donut" && <div className="h-full w-full rounded-full bg-card" />}</div></div>; }
   const points = segments.map((s, i) => `${(i / Math.max(segments.length - 1, 1)) * 100},${100 - (s.total / maxTotal) * 90}`).join(" ");
-  return <div className="relative h-64 border-4 border-dashed border-[#c45432] bg-[#e8b04b] p-4">{type === "line" && <svg className="absolute inset-4 h-[calc(100%-1rem)] w-[calc(100%-1rem)]" viewBox="0 0 100 100" preserveAspectRatio="none"><polyline fill="none" stroke="#2e4057" strokeWidth="6" points={points} vectorEffect="non-scaling-stroke" /></svg>}<div className="absolute inset-0 flex h-full items-end gap-2 p-4">{type === "bar" && segments.map((s) => <div key={s.period} className="flex min-w-5 flex-1 flex-col items-center gap-1" title={`${s.period}: ${formatQ(s.total)}`}><div className="w-full rounded-none border-2 border-[#3c2415] bg-[#c45432]" style={{ height: `${Math.max(4, (s.total / maxTotal) * 190)}px` }} /><span className="text-[10px] font-bold text-[#3c2415]">{s.period.slice(5)}</span></div>)}</div></div>;
+  return <div className="relative h-64 border-b border-l border-border bg-card/30 p-4">{type === "line" && <svg className="absolute inset-4 h-[calc(100%-1rem)] w-[calc(100%-1rem)]" viewBox="0 0 100 100" preserveAspectRatio="none"><polyline fill="none" stroke="hsl(var(--primary))" strokeWidth="1.5" points={points} vectorEffect="non-scaling-stroke" /></svg>}<div className="absolute inset-0 flex h-full items-end gap-2 p-4">{type === "bar" && segments.map((s) => <div key={s.period} className="flex min-w-5 flex-1 flex-col items-center gap-1" title={`${s.period}: ${formatQ(s.total)}`}><div className="w-full rounded-t bg-primary/80" style={{ height: `${Math.max(4, (s.total / maxTotal) * 190)}px` }} /><span className="text-[10px] text-muted-foreground">{s.period.slice(5)}</span></div>)}</div></div>;
 }
-function Metric({ icon, label, value, accent = false }: { icon: React.ReactNode; label: string; value: string; accent?: boolean }) { return <div className="rounded-lg border bg-card/85 p-4 shadow-sm backdrop-blur"><div className="mb-3 flex items-center gap-2 text-sm text-muted-foreground">{icon}{label}</div><p className={`text-2xl font-bold ${accent ? "text-emerald-600" : ""}`}>{value}</p></div>; }
+function Metric({ icon, label, value, currency = false, accent = false }: { icon: React.ReactNode; label: string; value: number; currency?: boolean; accent?: boolean }) { const animated = useCountUp(value); return <div className="rounded-lg border bg-card/85 p-4 shadow-sm backdrop-blur"><div className="mb-3 flex items-center gap-2 text-sm text-muted-foreground">{icon}{label}</div><p className={`text-2xl font-bold transition-all duration-300 ${accent ? "text-emerald-600" : ""}`}>{currency ? formatQ(animated) : Math.round(animated)}</p></div>; }
 function Panel({ title, children, className = "" }: { title: string; children: React.ReactNode; className?: string }) { return <div className={`rounded-lg border bg-card p-5 shadow-sm ${className}`}><h2 className="mb-4 flex items-center gap-2 font-semibold"><BarChart3 className="h-4 w-4" />{title}</h2>{children}</div>; }
+
+function useCountUp(target: number) { const [value, setValue] = useState(0); useEffect(() => { const start = performance.now(); const duration = 700; let frame = 0; const tick = (now: number) => { const progress = Math.min((now - start) / duration, 1); setValue(target * (1 - Math.pow(1 - progress, 3))); if (progress < 1) frame = requestAnimationFrame(tick); }; frame = requestAnimationFrame(tick); return () => cancelAnimationFrame(frame); }, [target]); return value; }
+
+function CalendarField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
+  const [open, setOpen] = useState(false); const selected = value ? new Date(`${value}T12:00:00`) : new Date(); const [month, setMonth] = useState(new Date(selected.getFullYear(), selected.getMonth(), 1));
+  const first = new Date(month.getFullYear(), month.getMonth(), 1).getDay(); const days = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate(); const cells = Array.from({ length: first + days }, (_, i) => i < first ? null : i - first + 1);
+  return <div className="relative text-xs text-muted-foreground"><span>{label}</span><button type="button" onClick={() => setOpen((v) => !v)} className="mt-1 flex w-40 items-center justify-between rounded-md border bg-background px-2 py-1.5 text-sm text-foreground"><span>{value || "Seleccionar fecha"}</span><CalendarDays className="h-4 w-4" /></button>{open && <div className="absolute right-0 z-20 mt-2 w-64 rounded-xl border bg-card p-3 text-foreground shadow-xl"><div className="mb-2 flex items-center justify-between"><button type="button" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))}><ChevronLeft className="h-4 w-4" /></button><strong>{month.toLocaleDateString("es-GT", { month: "long", year: "numeric" })}</strong><button type="button" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))}><ChevronRight className="h-4 w-4" /></button></div><div className="grid grid-cols-7 gap-1 text-center text-[10px] text-muted-foreground">{["D", "L", "M", "X", "J", "V", "S"].map((d) => <span key={d}>{d}</span>)}{cells.map((day, i) => day ? <button type="button" key={i} onClick={() => { onChange(localISO(new Date(month.getFullYear(), month.getMonth(), day))); setOpen(false); }} className="rounded p-1.5 text-sm hover:bg-primary hover:text-primary-foreground">{day}</button> : <span key={i} />)}</div></div>}</div>;
+}

@@ -41,8 +41,8 @@ function makeSchema(t: ReturnType<typeof useT>) {
     category: z.string().optional(),
     base_unit_name: z.string().min(1, t("form.errRequired")),
     base_unit_quantity: z.coerce.number().positive(t("form.errPositive")),
-    purchase_price: z.coerce.number().nonnegative(t("form.errNonNeg")),
-    stock: z.coerce.number().nonnegative(t("form.errNonNeg")),
+    purchase_price: z.coerce.number().nonnegative(t("form.errPurchasePriceNonNeg")),
+    stock: z.coerce.number().nonnegative(t("form.errStockNonNeg")),
     min_stock: z.coerce.number().nonnegative(t("form.errNonNeg")),
     sell_units: z.array(sellUnitSchema).min(1, t("form.errMinUnit")),
   });
@@ -276,6 +276,11 @@ export function ProductFormModal({
                   id="purchase_price"
                   {...register("purchase_price")}
                 />
+                {errors.purchase_price && (
+                  <p className="text-xs text-destructive" role="alert">
+                    {errors.purchase_price.message}
+                  </p>
+                )}
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="min_stock">{t("form.minStock")}</Label>
@@ -295,6 +300,11 @@ export function ProductFormModal({
                     step="any"
                     {...register("stock")}
                   />
+                  {errors.stock && (
+                    <p className="text-xs text-destructive" role="alert">
+                      {errors.stock.message}
+                    </p>
+                  )}
                 </div>
               )}
             </div>
