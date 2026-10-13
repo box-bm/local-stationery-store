@@ -160,6 +160,8 @@ export const es = {
   "form.errRequired": "Requerido",
   "form.errPositive": "Debe ser > 0",
   "form.errNonNeg": "Debe ser ≥ 0",
+  "form.errPurchasePriceNonNeg": "El precio de compra no puede ser negativo",
+  "form.errStockNonNeg": "El stock inicial no puede ser negativo",
   "form.errNumber": "Número",
   "form.errMinUnit": "Agregá al menos una unidad de venta",
 

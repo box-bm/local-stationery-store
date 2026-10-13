@@ -160,6 +160,8 @@ export const en: Record<TranslationKey, string> = {
   "form.errRequired": "Required",
   "form.errPositive": "Must be > 0",
   "form.errNonNeg": "Must be ≥ 0",
+  "form.errPurchasePriceNonNeg": "Purchase price cannot be negative",
+  "form.errStockNonNeg": "Initial stock cannot be negative",
   "form.errNumber": "Number",
   "form.errMinUnit": "Add at least one sell unit",
 
