@@ -30,7 +30,7 @@ function makeSchema(t: ReturnType<typeof useT>) {
       .positive(t("form.errPositive")),
     sell_price: z.coerce
       .number({ invalid_type_error: t("form.errNumber") })
-      .nonnegative(t("form.errNonNeg")),
+      .positive(t("form.errSellPricePositive")),
     is_default: z.boolean(),
   });
 
@@ -344,47 +344,51 @@ export function ProductFormModal({
                 <span />
               </div>
               {fields.map((field, i) => (
-                <div
-                  key={field.id}
-                  className="grid grid-cols-[1fr_110px_110px_auto_auto] items-center gap-2"
-                >
-                  <Input
-                    placeholder={t("form.unitNamePlaceholder")}
-                    {...register(`sell_units.${i}.name`)}
-                  />
-                  <Input
-                    type="number"
-                    step="any"
-                    {...register(`sell_units.${i}.quantity_in_base_units`)}
-                  />
-                  <MoneyInput {...register(`sell_units.${i}.sell_price`)} />
-                  <button
-                    type="button"
-                    title={t("form.markDefault")}
-                    onClick={() => setDefault(i)}
-                    className={cn(
-                      "flex h-10 w-10 items-center justify-center rounded-md border",
-                      sellUnits?.[i]?.is_default
-                        ? "border-primary text-primary"
-                        : "border-border text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    <Star
-                      className={cn(
-                        "h-4 w-4",
-                        sellUnits?.[i]?.is_default && "fill-primary"
-                      )}
+                <div key={field.id}>
+                  <div className="grid grid-cols-[1fr_110px_110px_auto_auto] items-center gap-2">
+                    <Input
+                      placeholder={t("form.unitNamePlaceholder")}
+                      {...register(`sell_units.${i}.name`)}
                     />
-                  </button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    disabled={fields.length === 1}
-                    onClick={() => remove(i)}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
+                    <Input
+                      type="number"
+                      step="any"
+                      {...register(`sell_units.${i}.quantity_in_base_units`)}
+                    />
+                    <MoneyInput {...register(`sell_units.${i}.sell_price`)} />
+                    <button
+                      type="button"
+                      title={t("form.markDefault")}
+                      onClick={() => setDefault(i)}
+                      className={cn(
+                        "flex h-10 w-10 items-center justify-center rounded-md border",
+                        sellUnits?.[i]?.is_default
+                          ? "border-primary text-primary"
+                          : "border-border text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      <Star
+                        className={cn(
+                          "h-4 w-4",
+                          sellUnits?.[i]?.is_default && "fill-primary"
+                        )}
+                      />
+                    </button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      disabled={fields.length === 1}
+                      onClick={() => remove(i)}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                  {errors.sell_units?.[i]?.sell_price && (
+                    <p className="mt-1 text-xs text-destructive" role="alert">
+                      {errors.sell_units[i]?.sell_price?.message}
+                    </p>
+                  )}
                 </div>
               ))}
             </div>

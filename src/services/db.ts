@@ -466,9 +466,9 @@ export async function completeSale(
   meta: SaleMeta
 ): Promise<CompleteSaleResult> {
   if (!cart.length) throw new Error("El carrito está vacío");
-  const db = await getDb();
-
   const total = cartTotal(cart);
+  if (!(total > 0)) throw new Error("El total de la venta debe ser mayor que cero");
+  const db = await getDb();
 
   // Resolve (find or create) the customer if a name was given.
   let customerId: string | null = null;

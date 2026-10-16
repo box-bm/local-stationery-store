@@ -5,7 +5,10 @@ import type { CartItem, Product, SellUnit } from "@/types";
 
 interface CartState {
   items: CartItem[];
-  /** Returns false (and leaves the cart unchanged) if it would exceed the stock. */
+  /**
+   * Returns false (and leaves the cart unchanged) if it would exceed the stock
+   * or the sell unit has no valid price (BUG-037).
+   */
   addItem: (product: Product, sellUnit: SellUnit, quantity: number) => boolean;
   removeItem: (index: number) => void;
   /** Returns false (and leaves the cart unchanged) if it would exceed the stock. */
@@ -23,6 +26,7 @@ export const useCartStore = create<CartState>((set, get) => ({
 
   addItem: (product, sellUnit, quantity) => {
     const { items } = get();
+    if (!(sellUnit.sell_price > 0)) return false;
     // Stock is shared by every sell unit of the product, so count all its lines.
     const needed =
       reservedStock(items, product.id) +

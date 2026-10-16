@@ -83,12 +83,14 @@ export const es = {
   "pos.scanNoMatch": "Sin coincidencia para el código {code}",
   "pos.scanError": "Error al escanear: {error}",
   "pos.noUnits": "{name} no tiene unidades de venta",
+  "pos.noPrice": "{name} no tiene precio de venta. Asigná un precio en Inventario.",
 
   // Sell unit modal
   "unit.chooseUnit": "Elegí la unidad de venta",
   "unit.eachIn": "{qty} {base} c/u",
   "unit.remaining": "Stock restante tras la venta",
   "unit.insufficient": "No hay stock suficiente para esta cantidad.",
+  "unit.noPrice": "Esta unidad no tiene precio de venta. Asigná un precio en Inventario.",
   "unit.addToCart": "Agregar al carrito",
 
   // Checkout
@@ -104,6 +106,7 @@ export const es = {
   "checkout.changeLabel": "Cambio",
   "checkout.missing": "Faltan {amount}",
   "checkout.cashShort": "El efectivo recibido no cubre el total.",
+  "checkout.zeroTotal": "El total de la venta debe ser mayor que cero.",
   "checkout.referenceRequired": "Ingresá el código de autorización de la transferencia.",
   "checkout.notes": "Notas (opcional)",
   "checkout.notesPlaceholder": "Ej. cliente frecuente",
@@ -167,6 +170,7 @@ export const es = {
   "form.errNonNeg": "Debe ser ≥ 0",
   "form.errPurchasePriceNonNeg": "El precio de compra no puede ser negativo",
   "form.errStockNonNeg": "El stock inicial no puede ser negativo",
+  "form.errSellPricePositive": "El precio de venta debe ser mayor que 0",
   "form.errNumber": "Número",
   "form.errMinUnit": "Agregá al menos una unidad de venta",
 

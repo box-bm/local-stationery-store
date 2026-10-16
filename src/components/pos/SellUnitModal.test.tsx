@@ -68,4 +68,19 @@ describe("<SellUnitModal />", () => {
     fireEvent.change(screen.getByLabelText("Cantidad"), { target: { value: "1" } });
     expect(screen.getByRole("button", { name: "Agregar al carrito" })).toBeEnabled();
   });
+
+  it("BUG-037: blocks adding a sell unit priced at Q0.00", () => {
+    const confirmed: number[] = [];
+    const free = { ...tijera, sell_units: [{ ...tijera.sell_units[0], sell_price: 0 }] };
+    render(
+      <SellUnitModal product={free} open onClose={() => {}} onConfirm={(_, qty) => confirmed.push(qty)} />
+    );
+    const add = screen.getByRole("button", { name: "Agregar al carrito" });
+    expect(add).toBeDisabled();
+    expect(
+      screen.getByText("Esta unidad no tiene precio de venta. Asigná un precio en Inventario.")
+    ).toBeInTheDocument();
+    fireEvent.click(add);
+    expect(confirmed).toEqual([]);
+  });
 });

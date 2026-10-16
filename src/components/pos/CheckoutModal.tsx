@@ -84,7 +84,9 @@ export function CheckoutModal({ open, onClose }: Props) {
   // (QA H-05). A transfer needs its authorization code (QA H-06).
   const cashShort = change !== null && change < 0;
   const referenceMissing = method === "transfer" && !reference.trim();
-  const blocked = noMethods || cashShort || referenceMissing;
+  // A sale must be worth something (BUG-038).
+  const zeroTotal = !(totalValue > 0);
+  const blocked = noMethods || zeroTotal || cashShort || referenceMissing;
 
   async function handleConfirm() {
     if (saving || !items.length || blocked) return;
@@ -141,6 +143,11 @@ export function CheckoutModal({ open, onClose }: Props) {
                   {t("checkout.totalToPay")}
                 </p>
                 <p className="text-4xl font-bold">{formatQ(totalValue)}</p>
+                {zeroTotal && items.length > 0 && (
+                  <p className="mt-2 text-sm text-destructive" role="alert">
+                    {t("checkout.zeroTotal")}
+                  </p>
+                )}
               </div>
 
               {/* Customer (optional, with autocomplete) */}
