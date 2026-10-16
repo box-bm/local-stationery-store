@@ -92,6 +92,10 @@ export function POSScreen() {
           toast.error(t("pos.noUnits", { name: product.name }));
           return;
         }
+        if (!(unit.sell_price > 0)) {
+          toast.error(t("pos.noPrice", { name: product.name }));
+          return;
+        }
         addItem(product, unit, 1);
         toast.success(t("pos.scannedAdded", { name: product.name, unit: unit.name }));
         setQuery("");

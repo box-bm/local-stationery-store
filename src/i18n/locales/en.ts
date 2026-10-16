@@ -83,12 +83,14 @@ export const en: Record<TranslationKey, string> = {
   "pos.scanNoMatch": "No match for code {code}",
   "pos.scanError": "Scan error: {error}",
   "pos.noUnits": "{name} has no sell units",
+  "pos.noPrice": "{name} has no sell price. Set a price in Inventory.",
 
   // Sell unit modal
   "unit.chooseUnit": "Choose the sell unit",
   "unit.eachIn": "{qty} {base} each",
   "unit.remaining": "Stock left after this sale",
   "unit.insufficient": "Not enough stock for this quantity.",
+  "unit.noPrice": "This unit has no sell price. Set a price in Inventory.",
   "unit.addToCart": "Add to cart",
 
   // Checkout
@@ -103,6 +105,7 @@ export const en: Record<TranslationKey, string> = {
   "checkout.change": "Change: {amount}",
   "checkout.changeLabel": "Change",
   "checkout.missing": "Missing {amount}",
+  "checkout.zeroTotal": "The sale total must be greater than zero.",
   "checkout.cashShort": "The cash received doesn't cover the total.",
   "checkout.referenceRequired": "Enter the transfer's authorization code.",
   "checkout.notes": "Notes (optional)",
@@ -167,6 +170,7 @@ export const en: Record<TranslationKey, string> = {
   "form.errNonNeg": "Must be ≥ 0",
   "form.errPurchasePriceNonNeg": "Purchase price cannot be negative",
   "form.errStockNonNeg": "Initial stock cannot be negative",
+  "form.errSellPricePositive": "Sell price must be greater than 0",
   "form.errNumber": "Number",
   "form.errMinUnit": "Add at least one sell unit",
 

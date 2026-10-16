@@ -93,4 +93,21 @@ describe("<CheckoutModal />", () => {
       { paymentMethod: "transfer", paymentReference: "AUT-123" },
     ]);
   });
+
+  it("BUG-038: cannot charge a sale whose total is Q0.00", () => {
+    useCartStore.setState({
+      items: [
+        {
+          product: { id: "9", name: "Producto QA correcto", stock: 10, purchase_price: 0 } as never,
+          sellUnit: { id: "91", name: "Unidad", sell_price: 0, quantity_in_base_units: 1 } as never,
+          quantity: 1,
+        },
+      ],
+    });
+    render(<CheckoutModal open onClose={() => {}} />);
+    expect(chargeButton()).toBeDisabled();
+    expect(screen.getByText("El total de la venta debe ser mayor que cero.")).toBeInTheDocument();
+    fireEvent.click(chargeButton());
+    expect(completeSale).not.toHaveBeenCalled();
+  });
 });

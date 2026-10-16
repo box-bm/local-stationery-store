@@ -219,6 +219,17 @@ describe("completeSale", () => {
     expect(saleMoves.reduce((s, m) => s + m.quantity, 0)).toBeCloseTo(-2.1, 10);
   });
 
+  it("BUG-038: rejects a sale whose total is Q0.00", async () => {
+    const p = await createAndLoad({
+      sell_units: [{ name: "Unidad", quantity_in_base_units: 1, sell_price: 0, is_default: true }],
+    });
+    await expect(db.completeSale([line(p, "Unidad", 1)], { paymentMethod: "cash" })).rejects.toThrow(
+      "El total de la venta debe ser mayor que cero"
+    );
+    expect(await db.countSales()).toBe(0);
+    expect(await stockOf(p.id)).toBe(10);
+  });
+
   it("numbers sales sequentially", async () => {
     const p = await createAndLoad();
     const a = await db.completeSale([line(p, "Resma", 1)], { paymentMethod: "cash" });

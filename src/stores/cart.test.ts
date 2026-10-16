@@ -129,3 +129,16 @@ describe("cart store — stock limit", () => {
     expect(s.addItem(resma, hoja, 1)).toBe(false);
   });
 });
+
+// BUG-037: a sell unit without a valid price (Q0.00) must not reach the cart.
+describe("cart store — sell price", () => {
+  beforeEach(() => {
+    useCartStore.setState({ items: [] });
+  });
+
+  it("BUG-037: refuses a sell unit priced at Q0.00", () => {
+    const s = useCartStore.getState();
+    expect(s.addItem(product(9, "Producto QA correcto"), unit(91, 0), 1)).toBe(false);
+    expect(useCartStore.getState().items).toEqual([]);
+  });
+});

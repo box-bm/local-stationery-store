@@ -61,6 +61,9 @@ export function SellUnitModal({
   const available = product ? product.stock - reserved : 0;
   const stockAfter = available - stockNeeded;
   const insufficient = product ? !fitsInStock(stockNeeded, available) : false;
+  // A unit priced at Q0.00 can't be sold (BUG-037).
+  const noPrice = selectedUnit ? !(selectedUnit.sell_price > 0) : false;
+  const blocked = insufficient || noPrice;
 
   if (!product) return null;
 
@@ -74,7 +77,7 @@ export function SellUnitModal({
       <DialogContent
         className="max-w-md"
         onKeyDown={(e) => {
-          if (e.key === "Enter" && !insufficient) {
+          if (e.key === "Enter" && !blocked) {
             e.preventDefault();
             confirm();
           }
@@ -169,13 +172,16 @@ export function SellUnitModal({
           {insufficient && (
             <p className="text-sm text-destructive">{t("unit.insufficient")}</p>
           )}
+          {noPrice && (
+            <p className="text-sm text-destructive">{t("unit.noPrice")}</p>
+          )}
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
             {t("common.cancel")}
           </Button>
-          <Button onClick={confirm} disabled={insufficient || !selectedUnit}>
+          <Button onClick={confirm} disabled={blocked || !selectedUnit}>
             {t("unit.addToCart")}
           </Button>
         </DialogFooter>
