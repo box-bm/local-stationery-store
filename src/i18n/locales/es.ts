@@ -100,6 +100,8 @@ export const es = {
   "checkout.change": "Cambio: {amount}",
   "checkout.changeLabel": "Cambio",
   "checkout.missing": "Faltan {amount}",
+  "checkout.cashShort": "El efectivo recibido no cubre el total.",
+  "checkout.referenceRequired": "Ingresá el código de autorización de la transferencia.",
   "checkout.notes": "Notas (opcional)",
   "checkout.notesPlaceholder": "Ej. cliente frecuente",
   "checkout.charge": "Cobrar {amount}",
