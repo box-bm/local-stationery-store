@@ -73,7 +73,7 @@ describe("<POSScreen />", () => {
     useCartStore.setState({ items: [] });
     useToastStore.setState({ toasts: [] });
     useSettingsStore.getState().setLanguage("es");
-    useSettingsStore.getState().setCurrency("Q", "GTQ");
+    useSettingsStore.getState().setCurrency("GTQ");
   });
 
   it("adds an in-stock product when its barcode is scanned", async () => {
