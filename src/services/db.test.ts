@@ -355,6 +355,16 @@ describe("sales reports", () => {
     ]);
   });
 
+  it("getTopProducts filters by date range (BUG-028)", async () => {
+    const inRange = await createAndLoad({ name: "Cuaderno" });
+    const outOfRange = await createAndLoad({ name: "Lapicero" });
+    await saleAt(inRange, "2026-01-12 18:00:00", 2);
+    await saleAt(outOfRange, "2026-01-20 18:00:00", 5);
+
+    const top = await db.getTopProducts({ from: "2026-01-10", to: "2026-01-15" });
+    expect(top).toEqual([{ product_name: "Cuaderno", quantity: 2, revenue: 110, profit: 30 }]);
+  });
+
   it("listStockMovements filters by date on the movement, not the product", async () => {
     const p = await createAndLoad();
     await current.execute("UPDATE stock_movements SET created_at = '2025-12-01 00:00:00'");
