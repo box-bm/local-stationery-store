@@ -25,6 +25,8 @@ import type { CartItem } from "@/types";
 interface Props {
   open: boolean;
   onClose: () => void;
+  /** Where focus goes once the dialog has closed (Radix `onCloseAutoFocus`). */
+  onCloseAutoFocus?: (e: Event) => void;
 }
 
 // Card was removed; only cash and transfer remain (gated by settings).
@@ -39,7 +41,7 @@ const PAYMENT_METHODS: {
 
 type Phase = "confirm" | "done";
 
-export function CheckoutModal({ open, onClose }: Props) {
+export function CheckoutModal({ open, onClose, onCloseAutoFocus }: Props) {
   const t = useT();
   const { items, total, clear } = useCartStore();
   const refreshStockAlerts = useAppStore((s) => s.refreshStockAlerts);
@@ -114,6 +116,7 @@ export function CheckoutModal({ open, onClose }: Props) {
       <DialogContent
         className="max-w-md"
         hideClose={phase === "done"}
+        onCloseAutoFocus={onCloseAutoFocus}
         onKeyDown={(e) => {
           if (e.key === "Enter" && phase === "confirm") {
             e.preventDefault();
