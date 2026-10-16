@@ -743,7 +743,7 @@ export async function getTopProductsFiltered(range?: DateRange, filters?: Dashbo
             SUM(si.subtotal - si.cost_total) AS profit
        FROM sale_items si
        JOIN sales s ON s.id = si.sale_id
-       ${clause.replace(/created_at/g, "s.created_at")}
+       ${clause}
        GROUP BY si.product_id, si.product_name
        ORDER BY quantity DESC, revenue DESC
        LIMIT $${params.length + 1}`,
