@@ -2,6 +2,11 @@ import "@testing-library/jest-dom/vitest";
 import { afterEach, vi } from "vitest";
 import { cleanup } from "@testing-library/react";
 
+// Sales are stored in UTC and filtered by local day, so date tests depend on
+// the machine's time zone. Pin it so they behave the same on every dev box and
+// CI runner; tests that need another zone set process.env.TZ themselves.
+process.env.TZ = "UTC";
+
 // Ensure a working localStorage (some jsdom setups don't expose it globally).
 function ensureLocalStorage() {
   const probe = globalThis as { localStorage?: Storage };

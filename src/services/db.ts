@@ -561,11 +561,36 @@ export interface DashboardFilters {
   customerId?: string;
 }
 
+// `created_at` is stored as UTC ("YYYY-MM-DD HH:MM:SS", SQLite's
+// CURRENT_TIMESTAMP), but ranges arrive as local calendar days. Convert each
+// local day boundary to that UTC format before comparing — otherwise sales
+// made after 18:00 in Guatemala (UTC−6) land on the next day (QA H-08).
+function toSqliteUtc(d: Date): string {
+  return d.toISOString().slice(0, 19).replace("T", " ");
+}
+
+/** UTC timestamp where local day `isoDate` begins. */
+function localDayStartUtc(isoDate: string): string {
+  return toSqliteUtc(new Date(`${isoDate}T00:00:00`));
+}
+
+/** UTC timestamp where the local day after `isoDate` begins (exclusive bound). */
+function localDayEndUtc(isoDate: string): string {
+  const d = new Date(`${isoDate}T00:00:00`);
+  d.setDate(d.getDate() + 1);
+  return toSqliteUtc(d);
+}
+
+/** SQLite modifier that shifts a UTC timestamp to the local time zone. */
+function localOffsetModifier(): string {
+  return `${-new Date().getTimezoneOffset()} minutes`;
+}
+
 function dashboardWhere(range?: DateRange, filters?: DashboardFilters): { clause: string; params: string[] } {
   const params: string[] = [];
   const parts: string[] = [];
-  if (range?.from) { params.push(range.from); parts.push(`s.created_at >= $${params.length}`); }
-  if (range?.to) { params.push(range.to + " 23:59:59"); parts.push(`s.created_at <= $${params.length}`); }
+  if (range?.from) { params.push(localDayStartUtc(range.from)); parts.push(`s.created_at >= $${params.length}`); }
+  if (range?.to) { params.push(localDayEndUtc(range.to)); parts.push(`s.created_at < $${params.length}`); }
   if (filters?.paymentMethod) { params.push(filters.paymentMethod); parts.push(`s.payment_method = $${params.length}`); }
   if (filters?.customerId) { params.push(filters.customerId); parts.push(`s.customer_id = $${params.length}`); }
   if (filters?.productId) { params.push(filters.productId); parts.push(`EXISTS (SELECT 1 FROM sale_items fp WHERE fp.sale_id = s.id AND fp.product_id = $${params.length})`); }
@@ -576,13 +601,13 @@ function dateWhere(range?: DateRange): { clause: string; params: string[] } {
   const params: string[] = [];
   const parts: string[] = [];
   if (range?.from) {
-    params.push(range.from);
+    params.push(localDayStartUtc(range.from));
     parts.push(`created_at >= $${params.length}`);
   }
   if (range?.to) {
-    // Include the whole "to" day.
-    params.push(range.to + " 23:59:59");
-    parts.push(`created_at <= $${params.length}`);
+    // Include the whole local "to" day.
+    params.push(localDayEndUtc(range.to));
+    parts.push(`created_at < $${params.length}`);
   }
   return {
     clause: parts.length ? `WHERE ${parts.join(" AND ")}` : "",
@@ -677,7 +702,7 @@ export async function getSalesSegments(
   >(
     `SELECT period, COUNT(*) AS count, SUM(sale_total) AS total, SUM(sale_cost) AS cost
      FROM (
-       SELECT strftime('${fmt}', s.created_at) AS period,
+       SELECT strftime('${fmt}', s.created_at, '${localOffsetModifier()}') AS period,
               s.total AS sale_total,
               COALESCE(
                 (SELECT SUM(si.cost_total) FROM sale_items si WHERE si.sale_id = s.id), 0

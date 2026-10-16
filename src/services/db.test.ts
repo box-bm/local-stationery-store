@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { createTestDb, type FakeDatabase } from "@/test/sqlite";
 import type { CartItem, ProductInput, ProductWithUnits } from "@/types";
 
@@ -304,6 +304,64 @@ describe("categories", () => {
     await db.deleteCategory("Papelería");
     counts = await db.listCategoriesWithCounts();
     expect(counts).toEqual([{ category: "Manualidades", count: 1 }]);
+  });
+});
+
+// H-08 (S3-HA-001): sales are stored with a UTC timestamp, but the POS asks
+// for "today" as a local date. In Guatemala (UTC−6) a sale at 23:30 local is
+// already the next day in UTC and must still count for the local day.
+describe("sales reports — local time zone", () => {
+  const originalTz = process.env.TZ;
+  beforeEach(() => {
+    process.env.TZ = "America/Guatemala";
+  });
+  afterEach(() => {
+    process.env.TZ = originalTz;
+  });
+
+  async function saleAtUtc(p: ProductWithUnits, utc: string) {
+    await db.completeSale([line(p, "Resma", 1)], { paymentMethod: "cash" });
+    await current.execute(
+      "UPDATE sales SET created_at = $1 WHERE sale_number = (SELECT MAX(sale_number) FROM sales)",
+      [utc]
+    );
+  }
+
+  it("H-08: a sale at 23:30 local counts for that local day", async () => {
+    const p = await createAndLoad(); // profit 15 per ream
+    await saleAtUtc(p, "2026-10-09 05:30:00"); // 2026-10-08 23:30 in Guatemala
+    expect(await db.getSalesSummary({ from: "2026-10-08", to: "2026-10-08" })).toEqual({
+      count: 1,
+      total: 55,
+      profit: 15,
+    });
+    expect(await db.getSalesSummary({ from: "2026-10-09", to: "2026-10-09" })).toMatchObject({
+      count: 0,
+    });
+  });
+
+  it("H-08: a sale at 00:30 local doesn't leak into the previous day", async () => {
+    const p = await createAndLoad();
+    await saleAtUtc(p, "2026-10-09 06:30:00"); // 2026-10-09 00:30 in Guatemala
+    expect(await db.countSales({ from: "2026-10-08", to: "2026-10-08" })).toBe(0);
+    expect(await db.countSales({ from: "2026-10-09", to: "2026-10-09" })).toBe(1);
+  });
+
+  it("H-08: the sales list and stock movements use the local day too", async () => {
+    const p = await createAndLoad();
+    await saleAtUtc(p, "2026-10-09 05:30:00");
+    await current.execute("UPDATE stock_movements SET created_at = '2026-10-09 05:30:00'");
+    const day = { from: "2026-10-08", to: "2026-10-08" };
+    expect(await db.listSales(day)).toHaveLength(1);
+    expect((await db.listStockMovements(day)).filter((m) => m.type === "sale")).toHaveLength(1);
+    expect(await db.listStockMovements({ from: "2026-10-09", to: "2026-10-09" })).toHaveLength(0);
+  });
+
+  it("H-08: daily segments group by the local day", async () => {
+    const p = await createAndLoad();
+    await saleAtUtc(p, "2026-10-09 05:30:00");
+    const segs = await db.getSalesSegments(undefined, "day");
+    expect(segs.map((s) => s.period)).toEqual(["2026-10-08"]);
   });
 });
 
