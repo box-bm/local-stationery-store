@@ -17,6 +17,7 @@ export function DashboardScreen() {
   const [from, setFrom] = useState(initial.from ?? "");
   const [to, setTo] = useState(initial.to ?? "");
   const [range, setRange] = useState<DateRange>(initial);
+  const [rangeError, setRangeError] = useState(false);
   const [filters, setFilters] = useState<DashboardFilters>({});
   const [chart, setChart] = useState<ChartType>("bar");
   const [products, setProducts] = useState<Product[]>([]);
@@ -38,25 +39,29 @@ export function DashboardScreen() {
   }, [range, filters]);
 
   const maxUnits = Math.max(...top.map((p) => p.quantity), 1);
-  const chartSegments = segments.length ? segments : [
-    { period: "2026-10-01", count: 12, total: 420, profit: 90 },
-    { period: "2026-10-02", count: 4, total: 80, profit: 20 },
-    { period: "2026-10-03", count: 18, total: 760, profit: 140 },
-    { period: "2026-10-04", count: 2, total: 25, profit: 5 },
-  ];
-  const chartMaxTotal = Math.max(...chartSegments.map((s) => s.total), 1);
+  // No sample-data fallback: an empty result shows «no data» (BUG-041).
+  const chartMaxTotal = Math.max(...segments.map((s) => s.total), 1);
+
+  function applyRange(e: React.FormEvent) {
+    e.preventDefault();
+    // ISO dates compare correctly as strings (BUG-040).
+    if (from && to && from > to) { setRangeError(true); return; }
+    setRangeError(false);
+    setRange({ from: from || undefined, to: to || undefined });
+  }
 
   return <section className="relative h-full overflow-y-auto p-6"><div className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(to_right,hsl(var(--border)/.22)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/.22)_1px,transparent_1px)] [background-size:32px_32px] [mask-image:radial-gradient(ellipse_at_center,black,transparent_78%)]" /><div className="relative mx-auto max-w-7xl space-y-6">
     <header className="flex flex-wrap items-end justify-between gap-4"><div><h1 className="text-2xl font-bold">{t("dashboard.title")}</h1><p className="text-sm text-muted-foreground">{t("dashboard.subtitle")}</p></div>
-      <form className="flex flex-wrap items-end gap-2" onSubmit={(e) => { e.preventDefault(); setRange({ from: from || undefined, to: to || undefined }); }}>
-        <CalendarField label={t("dashboard.from")} value={from} onChange={setFrom} />
-        <CalendarField label={t("dashboard.to")} value={to} onChange={setTo} />
+      <form className="flex flex-wrap items-end gap-2" onSubmit={applyRange}>
+        <CalendarField label={t("dashboard.from")} value={from} onChange={(v) => { setFrom(v); setRangeError(false); }} />
+        <CalendarField label={t("dashboard.to")} value={to} onChange={(v) => { setTo(v); setRangeError(false); }} />
         <button className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">{t("dashboard.apply")}</button>
+        {rangeError && <p role="alert" className="w-full text-right text-sm text-destructive">{t("dashboard.invalidRange")}</p>}
       </form>
     </header>
     <div className="flex flex-wrap gap-2 rounded-xl border bg-card/80 p-3 shadow-sm backdrop-blur"><select aria-label={t("dashboard.productFilter")} className="rounded-md border bg-background px-3 py-2 text-sm" value={filters.productId ?? ""} onChange={(e) => setFilters((f) => ({ ...f, productId: e.target.value || undefined }))}><option value="">{t("dashboard.allProducts")}</option>{products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select><select aria-label={t("dashboard.paymentFilter")} className="rounded-md border bg-background px-3 py-2 text-sm" value={filters.paymentMethod ?? ""} onChange={(e) => setFilters((f) => ({ ...f, paymentMethod: e.target.value || undefined }))}><option value="">{t("dashboard.allPayments")}</option><option value="cash">{t("checkout.cash")}</option><option value="card">{t("checkout.card")}</option><option value="transfer">{t("checkout.transfer")}</option></select><select aria-label={t("dashboard.customerFilter")} className="rounded-md border bg-background px-3 py-2 text-sm" value={filters.customerId ?? ""} onChange={(e) => setFilters((f) => ({ ...f, customerId: e.target.value || undefined }))}><option value="">{t("dashboard.allCustomers")}</option>{customers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
     <div className="grid gap-4 sm:grid-cols-3"><Metric icon={<ShoppingBag />} label={t("dashboard.sales")} value={summary.count} /><Metric icon={<WalletCards />} label={t("dashboard.revenue")} value={summary.total} currency /><Metric icon={<TrendingUp />} label={t("dashboard.profit")} value={summary.profit} currency accent /></div>
-    <Panel title={t("dashboard.salesTrend")}><div className="mb-4 flex flex-wrap gap-2">{(["bar", "line", "pie", "donut"] as ChartType[]).map((id) => { const Icon = id === "bar" ? BarChart3 : id === "line" ? LineChart : id === "pie" ? PieChart : CircleDot; return <button key={id} type="button" aria-label={t(`dashboard.chart.${id}`)} onClick={() => setChart(id)} className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm ${chart === id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}><Icon className="h-4 w-4" />{t(`dashboard.chart.${id}`)}</button>; })}</div><div key={`${chart}-${range.from}-${range.to}`} className="animate-[fade-in-up_500ms_ease-out]"><Chart type={chart} segments={chartSegments} maxTotal={chartMaxTotal} noData={t("dashboard.noData")} /></div></Panel>
+    <Panel title={t("dashboard.salesTrend")}><div className="mb-4 flex flex-wrap gap-2">{(["bar", "line", "pie", "donut"] as ChartType[]).map((id) => { const Icon = id === "bar" ? BarChart3 : id === "line" ? LineChart : id === "pie" ? PieChart : CircleDot; return <button key={id} type="button" aria-label={t(`dashboard.chart.${id}`)} onClick={() => setChart(id)} className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm ${chart === id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}><Icon className="h-4 w-4" />{t(`dashboard.chart.${id}`)}</button>; })}</div><div key={`${chart}-${range.from}-${range.to}`} className="animate-[fade-in-up_500ms_ease-out]"><Chart type={chart} segments={segments} maxTotal={chartMaxTotal} noData={t("dashboard.noData")} /></div></Panel>
        <Panel className="lg:col-span-2" title={t("dashboard.topProducts")}><div className="space-y-4">{top.length ? top.map((p, i) => <div key={p.product_name}><div className="mb-1 flex justify-between gap-2 text-sm"><span className="truncate">{i + 1}. {p.product_name}</span><span className="text-muted-foreground">{p.quantity} {t("dashboard.units")}</span></div><div className="h-2 rounded-full bg-muted"><div className="h-2 rounded-full bg-emerald-500" style={{ width: `${(p.quantity / maxUnits) * 100}%` }} /></div></div>) : <p className="text-sm text-muted-foreground">{t("dashboard.noData")}</p>}</div></Panel>
   </div></section>;
 }

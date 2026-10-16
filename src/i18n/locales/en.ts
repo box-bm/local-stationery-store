@@ -42,6 +42,7 @@ export const en: Record<TranslationKey, string> = {
   "dashboard.subtitle": "Visual summary of business performance",
   "dashboard.from": "From",
   "dashboard.to": "To",
+  "dashboard.invalidRange": "The “From” date cannot be after the “To” date.",
   "dashboard.apply": "Apply",
   "dashboard.sales": "Sales",
   "dashboard.revenue": "Revenue",
