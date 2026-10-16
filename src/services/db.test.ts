@@ -226,10 +226,38 @@ describe("completeSale", () => {
     expect([a.saleNumber, b.saleNumber]).toEqual([1, 2]);
   });
 
-  it("allows stock to go negative", async () => {
+  // H-03 (S3-HA-001): a sale must never leave stock below zero.
+  it("H-03: rejects a sale that exceeds the stock and records nothing", async () => {
+    const p = await createAndLoad({ name: "Tijera escolar", stock: 4 });
+    await expect(
+      db.completeSale([line(p, "Resma", 5)], { paymentMethod: "cash" })
+    ).rejects.toThrow("Stock insuficiente para Tijera escolar");
+    expect(await stockOf(p.id)).toBe(4);
+    expect(await db.countSales()).toBe(0);
+    expect((await db.listStockMovements()).filter((m) => m.type === "sale")).toHaveLength(0);
+  });
+
+  it("H-03: adds up every line of the same product before checking", async () => {
     const p = await createAndLoad({ stock: 1 });
-    await db.completeSale([line(p, "Resma", 3)], { paymentMethod: "cash" });
-    expect(await stockOf(p.id)).toBe(-2);
+    // 300 hojas (0.6 resma) + 1 resma = 1.6 > 1
+    await expect(
+      db.completeSale([line(p, "Hoja", 300), line(p, "Resma", 1)], { paymentMethod: "cash" })
+    ).rejects.toThrow("Stock insuficiente");
+    expect(await stockOf(p.id)).toBe(1);
+  });
+
+  it("H-03: checks the stock in the database, not the cart's stale copy", async () => {
+    const p = await createAndLoad({ stock: 4 });
+    await current.execute("UPDATE products SET stock = 1 WHERE id = $1", [p.id]);
+    await expect(
+      db.completeSale([line(p, "Resma", 2)], { paymentMethod: "cash" })
+    ).rejects.toThrow("Stock insuficiente");
+  });
+
+  it("H-03: allows selling exactly the remaining stock", async () => {
+    const p = await createAndLoad({ stock: 1 });
+    await db.completeSale([line(p, "Hoja", 500)], { paymentMethod: "cash" });
+    expect(await stockOf(p.id)).toBeCloseTo(0, 10);
   });
 
   it("finds or creates the customer case-insensitively", async () => {

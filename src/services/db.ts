@@ -1,6 +1,6 @@
 import Database from "@tauri-apps/plugin-sql";
 import { cartTotal, lineSubtotal, stockDeducted } from "@/lib/calc";
-import { countStock, type StockCounts } from "@/lib/stock";
+import { countStock, fitsInStock, type StockCounts } from "@/lib/stock";
 import { fuzzyIncludes } from "@/lib/text";
 import { useSettingsStore } from "@/stores/settings";
 import type {
@@ -468,6 +468,8 @@ export async function completeSale(
   if (!cart.length) throw new Error("El carrito está vacío");
   const db = await getDb();
 
+  await assertStockAvailable(cart);
+
   const total = cartTotal(cart);
 
   // Resolve (find or create) the customer if a name was given.
@@ -548,6 +550,32 @@ export async function completeSale(
 
   markDirty();
   return { saleNumber, total };
+}
+
+/**
+ * Refuse a sale that would leave any product below zero (QA H-03). Checks the
+ * current stock in the database — not the cart's copy, which may be stale —
+ * and adds up every line of the same product. Runs before anything is
+ * written, so a rejected sale leaves no partial rows behind.
+ */
+async function assertStockAvailable(cart: CartItem[]): Promise<void> {
+  const db = await getDb();
+  const needed = new Map<string, { name: string; qty: number }>();
+  for (const item of cart) {
+    const entry = needed.get(item.product.id) ?? { name: item.product.name, qty: 0 };
+    entry.qty += stockDeducted(item.sellUnit.quantity_in_base_units, item.quantity);
+    needed.set(item.product.id, entry);
+  }
+  for (const [id, { name, qty }] of needed) {
+    const rows = await db.select<{ stock: number }[]>(
+      "SELECT stock FROM products WHERE id = $1",
+      [id]
+    );
+    const stock = rows[0]?.stock ?? 0;
+    if (!fitsInStock(qty, stock)) {
+      throw new Error(`Stock insuficiente para ${name}`);
+    }
+  }
 }
 
 export interface DateRange {
