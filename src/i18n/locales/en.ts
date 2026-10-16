@@ -103,6 +103,8 @@ export const en: Record<TranslationKey, string> = {
   "checkout.change": "Change: {amount}",
   "checkout.changeLabel": "Change",
   "checkout.missing": "Missing {amount}",
+  "checkout.cashShort": "The cash received doesn't cover the total.",
+  "checkout.referenceRequired": "Enter the transfer's authorization code.",
   "checkout.notes": "Notes (optional)",
   "checkout.notesPlaceholder": "E.g. regular customer",
   "checkout.charge": "Charge {amount}",

@@ -80,15 +80,20 @@ export function CheckoutModal({ open, onClose }: Props) {
   const cashNum = Number(cashReceived) || 0;
   const change = method === "cash" && cashNum > 0 ? cashNum - totalValue : null;
   const noMethods = available.length === 0;
+  // Cash received is optional, but if it's entered it must cover the total
+  // (QA H-05). A transfer needs its authorization code (QA H-06).
+  const cashShort = change !== null && change < 0;
+  const referenceMissing = method === "transfer" && !reference.trim();
+  const blocked = noMethods || cashShort || referenceMissing;
 
   async function handleConfirm() {
-    if (saving || !items.length || noMethods) return;
+    if (saving || !items.length || blocked) return;
     setSaving(true);
     try {
       const snapshot = [...items];
       const res = await completeSale(snapshot, {
         paymentMethod: method,
-        paymentReference: method === "transfer" ? reference : null,
+        paymentReference: method === "transfer" ? reference.trim() : null,
         customerName: customer || null,
         notes: notes || null,
       });
@@ -189,7 +194,13 @@ export function CheckoutModal({ open, onClose }: Props) {
                     value={reference}
                     onChange={(e) => setReference(e.target.value)}
                     placeholder={t("checkout.referencePlaceholder")}
+                    aria-invalid={referenceMissing}
                   />
+                  {referenceMissing && (
+                    <p className="text-sm text-destructive">
+                      {t("checkout.referenceRequired")}
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -235,7 +246,8 @@ export function CheckoutModal({ open, onClose }: Props) {
               <Button
                 variant="success"
                 onClick={handleConfirm}
-                disabled={saving || noMethods}
+                disabled={saving || blocked}
+                title={cashShort ? t("checkout.cashShort") : undefined}
               >
                 {saving
                   ? t("common.saving")
