@@ -59,7 +59,7 @@ describe("settings store", () => {
     const store = await loadStore();
     const s = store.getState();
     s.setLanguage("en");
-    s.setCurrency("$", "USD");
+    s.setCurrency("USD");
     s.setStoreName("Mi Tienda");
     s.setPaymentMethod("transfer", false);
     s.setSalesPageSize(100);
@@ -123,5 +123,45 @@ describe("settings store", () => {
     store.getState().acceptDriveSyncTerms();
     const at = store.getState().driveSyncTermsAcceptedAt!;
     expect(new Date(at).toISOString()).toBe(at);
+  });
+});
+
+// BUG-043: the currency comes from a fixed list, never from free text.
+describe("settings store — currency", () => {
+  it("BUG-043: sets symbol and code from a known currency code", async () => {
+    const s = (await loadStore()).getState();
+    expect(s.setCurrency("HNL")).toBe(true);
+    expect(persisted()).toMatchObject({ currencySymbol: "L", currencyCode: "HNL" });
+  });
+
+  it("BUG-043: rejects an unknown currency and keeps the current one", async () => {
+    const store = await loadStore();
+    expect(store.getState().setCurrency("aaa")).toBe(false);
+    expect(store.getState()).toMatchObject({ currencySymbol: "Q", currencyCode: "GTQ" });
+  });
+
+  it("BUG-043: repairs an arbitrary symbol saved by an older version", async () => {
+    localStorage.setItem(KEY, JSON.stringify({ currencySymbol: "aaa", currencyCode: "GTQ", deviceId: "abc" }));
+    expect((await loadStore()).getState()).toMatchObject({ currencySymbol: "Q", currencyCode: "GTQ" });
+
+    localStorage.setItem(KEY, JSON.stringify({ currencySymbol: "aaa", currencyCode: "aaa", deviceId: "abc" }));
+    expect((await loadStore()).getState()).toMatchObject({ currencySymbol: "Q", currencyCode: "GTQ" });
+  });
+});
+
+// BUG-044: the business name is required.
+describe("settings store — business name", () => {
+  it("BUG-044: refuses an empty name and keeps the saved one", async () => {
+    const store = await loadStore();
+    expect(store.getState().setStoreName("Librería Central")).toBe(true);
+    expect(store.getState().setStoreName("   ")).toBe(false);
+    expect(store.getState().storeName).toBe("Librería Central");
+    expect(persisted().storeName).toBe("Librería Central");
+  });
+
+  it("BUG-044: trims the name before saving", async () => {
+    const store = await loadStore();
+    store.getState().setStoreName("  Mi Tienda ");
+    expect(persisted().storeName).toBe("Mi Tienda");
   });
 });

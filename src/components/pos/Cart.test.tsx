@@ -8,7 +8,7 @@ describe("<Cart />", () => {
   beforeEach(() => {
     useCartStore.setState({ items: [] });
     useSettingsStore.getState().setLanguage("es");
-    useSettingsStore.getState().setCurrency("Q", "GTQ");
+    useSettingsStore.getState().setCurrency("GTQ");
   });
 
   it("shows the empty state when the cart has no items", () => {

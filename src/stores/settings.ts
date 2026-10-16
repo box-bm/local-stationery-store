@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { Lang } from "@/i18n/translations";
+import { findCurrency, DEFAULT_CURRENCY } from "@/lib/currency";
 
 export type ThemeMode = "light" | "dark" | "system";
 
@@ -41,8 +42,10 @@ export interface SettingsState {
 
   setLanguage: (l: Lang) => void;
   setTheme: (t: ThemeMode) => void;
-  setCurrency: (symbol: string, code: string) => void;
-  setStoreName: (name: string) => void;
+  /** Returns false (and keeps the current currency) for an unknown code. */
+  setCurrency: (code: string) => boolean;
+  /** Returns false (and keeps the saved name) for an empty name. */
+  setStoreName: (name: string) => boolean;
   setLock: (enabled: boolean, hash: string | null) => void;
   setPaymentMethod: (id: PaymentMethodId, enabled: boolean) => void;
   setOnboardingDone: (done: boolean) => void;
@@ -114,11 +117,17 @@ const DEFAULTS: Persisted = {
 function load(): Persisted {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) return { ...DEFAULTS, ...JSON.parse(raw) };
+    if (raw) return withValidCurrency({ ...DEFAULTS, ...JSON.parse(raw) });
   } catch {
     /* ignore corrupt settings */
   }
   return { ...DEFAULTS };
+}
+
+/** Older versions saved free text as the symbol (BUG-043); repair it from the code. */
+function withValidCurrency(p: Persisted): Persisted {
+  const currency = findCurrency(p.currencyCode) ?? DEFAULT_CURRENCY;
+  return { ...p, currencySymbol: currency.symbol, currencyCode: currency.code };
 }
 
 function persist(p: Persisted) {
@@ -194,14 +203,21 @@ export const useSettingsStore = create<SettingsState>((set, get) => {
       persist({ ...snapshot(), theme });
     },
 
-    setCurrency: (currencySymbol, currencyCode) => {
-      set({ currencySymbol, currencyCode });
-      persist({ ...snapshot(), currencySymbol, currencyCode });
+    setCurrency: (code) => {
+      const currency = findCurrency(code);
+      if (!currency) return false;
+      const patch = { currencySymbol: currency.symbol, currencyCode: currency.code };
+      set(patch);
+      persist({ ...snapshot(), ...patch });
+      return true;
     },
 
-    setStoreName: (storeName) => {
+    setStoreName: (name) => {
+      const storeName = name.trim();
+      if (!storeName) return false;
       set({ storeName });
       persist({ ...snapshot(), storeName });
+      return true;
     },
 
     setLock: (lockEnabled, lockHash) => {

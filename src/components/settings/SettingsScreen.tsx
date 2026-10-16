@@ -8,7 +8,6 @@ import {
   Database,
   FolderOpen,
   Copy,
-  Save,
   FileSpreadsheet,
   ShieldCheck,
   DownloadCloud,
@@ -35,6 +34,7 @@ import { useT } from "@/i18n";
 import type { Lang } from "@/i18n";
 import { toast } from "@/stores/toast";
 import { cn } from "@/lib/utils";
+import { CURRENCIES } from "@/lib/currency";
 import {
   getDataDir,
   openDataFolder,
@@ -67,8 +67,7 @@ export function SettingsScreen({ onShowGuide }: Props) {
 
   const [dataDir, setDataDir] = useState("");
   const [storeName, setStoreNameLocal] = useState(s.storeName);
-  const [symbol, setSymbol] = useState(s.currencySymbol);
-  const [code, setCode] = useState(s.currencyCode);
+  const [storeNameError, setStoreNameError] = useState(false);
 
   const [version, setVersion] = useState("");
   const [checking, setChecking] = useState(false);
@@ -209,42 +208,49 @@ export function SettingsScreen({ onShowGuide }: Props) {
 
             {/* Currency + store */}
             <Section icon={Coins} title={t("settings.currency")}>
-              <div className="flex flex-wrap items-end gap-3">
-                <div className="space-y-1.5">
-                  <Label>{t("settings.currencySymbol")}</Label>
-                  <Input
-                    value={symbol}
-                    onChange={(e) => setSymbol(e.target.value)}
-                    className="w-24"
-                    maxLength={4}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>{t("settings.currencyCode")}</Label>
-                  <Input
-                    value={code}
-                    onChange={(e) => setCode(e.target.value)}
-                    className="w-28"
-                    maxLength={4}
-                  />
-                </div>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    s.setCurrency(symbol || "Q", code || "GTQ");
-                    toast.success(t("common.save"));
+              {/* A fixed list instead of free text (BUG-043). */}
+              <Row label={t("settings.currency")}>
+                <Select
+                  aria-label={t("settings.currency")}
+                  className="w-auto min-w-[240px]"
+                  value={s.currencyCode}
+                  onChange={(e) => {
+                    if (s.setCurrency(e.target.value)) toast.success(t("common.save"));
                   }}
                 >
-                  <Save className="h-4 w-4" /> {t("common.save")}
-                </Button>
-              </div>
+                  {CURRENCIES.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.code} – {c.name[s.language]} ({c.symbol})
+                    </option>
+                  ))}
+                </Select>
+              </Row>
               <Row label={t("settings.storeName")} icon={Store}>
-                <div className="flex w-full max-w-sm gap-2">
+                <div className="w-full max-w-sm space-y-1">
                   <Input
+                    aria-label={t("settings.storeName")}
+                    aria-invalid={storeNameError}
                     value={storeName}
-                    onChange={(e) => setStoreNameLocal(e.target.value)}
-                    onBlur={() => s.setStoreName(storeName || "Mi Librería")}
+                    onChange={(e) => {
+                      setStoreNameLocal(e.target.value);
+                      setStoreNameError(false);
+                    }}
+                    onBlur={() => {
+                      // The name is required: an empty one is not saved (BUG-044).
+                      if (storeName.trim() === s.storeName) return;
+                      if (s.setStoreName(storeName)) {
+                        setStoreNameLocal(storeName.trim());
+                        toast.success(t("common.save"));
+                      } else {
+                        setStoreNameError(true);
+                      }
+                    }}
                   />
+                  {storeNameError && (
+                    <p className="text-xs text-destructive" role="alert">
+                      {t("settings.storeNameRequired")}
+                    </p>
+                  )}
                 </div>
               </Row>
               <p className="text-xs text-muted-foreground">
