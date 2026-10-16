@@ -139,7 +139,7 @@ describe("runSyncTick", () => {
       remoteMeta({ modifiedTime: "2026-09-05T00:00:00.000Z" })
     );
     useCartStore.getState().addItem(
-      { id: "p", purchase_price: 1 } as Product,
+      { id: "p", purchase_price: 1, stock: 10 } as Product,
       { id: "u", sell_price: 1, quantity_in_base_units: 1 } as SellUnit,
       1
     );

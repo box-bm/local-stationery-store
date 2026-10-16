@@ -39,3 +39,34 @@ export function countStock(
   }
   return { low, out };
 }
+
+// Tolerance for fractional sell units (e.g. 0.002 of a ream per sheet), so
+// 500 × 0.002 still counts as exactly one ream.
+const STOCK_EPSILON = 1e-9;
+
+/** Whether `needed` base units fit in `available` stock. */
+export function fitsInStock(needed: number, available: number): boolean {
+  return needed <= available + STOCK_EPSILON;
+}
+
+/**
+ * Base units of a product already reserved by cart lines — across every sell
+ * unit of that product. `skipIndex` leaves one line out (the one being edited).
+ */
+export function reservedStock(
+  items: {
+    product: { id: string };
+    sellUnit: { quantity_in_base_units: number };
+    quantity: number;
+  }[],
+  productId: string,
+  skipIndex?: number
+): number {
+  return items.reduce(
+    (sum, it, i) =>
+      i === skipIndex || it.product.id !== productId
+        ? sum
+        : sum + it.sellUnit.quantity_in_base_units * it.quantity,
+    0
+  );
+}
