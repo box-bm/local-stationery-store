@@ -86,13 +86,21 @@ export function POSScreen() {
           toast.warning(t("pos.scanNoMatch", { code }));
           return;
         }
+        // Same rule as clicking the card: out-of-stock products are blocked (QA H-04).
+        if (stockStatus(product.stock, product.min_stock) === "out") {
+          toast.error(t("pos.outOfStockBlocked", { name: product.name }));
+          return;
+        }
         const unit =
           product.sell_units.find((u) => u.is_default) ?? product.sell_units[0];
         if (!unit) {
           toast.error(t("pos.noUnits", { name: product.name }));
           return;
         }
-        addItem(product, unit, 1);
+        if (!addItem(product, unit, 1)) {
+          toast.error(t("pos.insufficientStock", { name: product.name }));
+          return;
+        }
         toast.success(t("pos.scannedAdded", { name: product.name, unit: unit.name }));
         setQuery("");
       } catch (e) {
@@ -110,6 +118,13 @@ export function POSScreen() {
     toast.success(t("pos.addedToCart", { name: selected.name }));
     setSelected(null);
     setQuery("");
+  }
+
+  // Radix returns focus to whatever opened a dialog once it closes (a product
+  // card, the cart button), which steals it from the search box. Send it to
+  // the search box instead so scanning/typing can continue (QA H-07).
+  function focusSearchOnClose(e: Event) {
+    e.preventDefault();
     searchRef.current?.focus();
   }
 
@@ -267,19 +282,15 @@ export function POSScreen() {
         product={selected}
         open={!!selected}
         reserved={selected ? reservedStock(cartItems, selected.id) : 0}
-        onClose={() => {
-          setSelected(null);
-          searchRef.current?.focus();
-        }}
+        onClose={() => setSelected(null)}
+        onCloseAutoFocus={focusSearchOnClose}
         onConfirm={handleConfirmUnit}
       />
 
       <CheckoutModal
         open={checkoutOpen}
-        onClose={() => {
-          setCheckoutOpen(false);
-          searchRef.current?.focus();
-        }}
+        onClose={() => setCheckoutOpen(false)}
+        onCloseAutoFocus={focusSearchOnClose}
       />
     </div>
   );

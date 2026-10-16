@@ -21,6 +21,8 @@ interface Props {
   /** Base units of this product already in the cart (any sell unit). */
   reserved?: number;
   onClose: () => void;
+  /** Where focus goes once the dialog has closed (Radix `onCloseAutoFocus`). */
+  onCloseAutoFocus?: (e: Event) => void;
   onConfirm: (sellUnit: SellUnit, quantity: number) => void;
 }
 
@@ -29,6 +31,7 @@ export function SellUnitModal({
   open,
   reserved = 0,
   onClose,
+  onCloseAutoFocus,
   onConfirm,
 }: Props) {
   const t = useT();
@@ -73,6 +76,7 @@ export function SellUnitModal({
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent
         className="max-w-md"
+        onCloseAutoFocus={onCloseAutoFocus}
         onKeyDown={(e) => {
           if (e.key === "Enter" && !insufficient) {
             e.preventDefault();
