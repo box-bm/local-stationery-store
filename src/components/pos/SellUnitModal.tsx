@@ -12,16 +12,25 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useT } from "@/i18n";
 import { formatQ, formatStock, cn } from "@/lib/utils";
+import { fitsInStock } from "@/lib/stock";
 import type { ProductWithUnits, SellUnit } from "@/types";
 
 interface Props {
   product: ProductWithUnits | null;
   open: boolean;
+  /** Base units of this product already in the cart (any sell unit). */
+  reserved?: number;
   onClose: () => void;
   onConfirm: (sellUnit: SellUnit, quantity: number) => void;
 }
 
-export function SellUnitModal({ product, open, onClose, onConfirm }: Props) {
+export function SellUnitModal({
+  product,
+  open,
+  reserved = 0,
+  onClose,
+  onConfirm,
+}: Props) {
   const t = useT();
   const [unitId, setUnitId] = useState<string | null>(null);
   const [quantity, setQuantity] = useState("1");
@@ -48,8 +57,10 @@ export function SellUnitModal({ product, open, onClose, onConfirm }: Props) {
   const stockNeeded = selectedUnit
     ? selectedUnit.quantity_in_base_units * qtyNum
     : 0;
-  const stockAfter = product ? product.stock - stockNeeded : 0;
-  const insufficient = product ? stockNeeded > product.stock : false;
+  // What's already in the cart is no longer available (QA H-02).
+  const available = product ? product.stock - reserved : 0;
+  const stockAfter = available - stockNeeded;
+  const insufficient = product ? !fitsInStock(stockNeeded, available) : false;
 
   if (!product) return null;
 

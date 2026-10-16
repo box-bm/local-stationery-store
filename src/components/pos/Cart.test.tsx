@@ -19,7 +19,7 @@ describe("<Cart />", () => {
   it("renders cart lines and the total", () => {
     // Populate the store before rendering so the component reads the items.
     useCartStore.getState().addItem(
-      { id: 1, name: "Lápiz" } as never,
+      { id: 1, name: "Lápiz", stock: 10 } as never,
       { id: 1, name: "Unidad", sell_price: 2, quantity_in_base_units: 1 } as never,
       3
     );
@@ -42,5 +42,18 @@ describe("<Cart />", () => {
     expect(btn).toBeDisabled();
     fireEvent.click(btn);
     expect(calls).toHaveLength(0);
+  });
+
+  it("H-01: disables «+» once the line reaches the product's stock", () => {
+    useCartStore.getState().addItem(
+      { id: "7", name: "Tijera escolar", stock: 4 } as never,
+      { id: "71", name: "Unidad", sell_price: 12, quantity_in_base_units: 1 } as never,
+      4
+    );
+    render(<Cart onCheckout={() => {}} />);
+    const plus = screen.getByRole("button", { name: "Aumentar cantidad" });
+    expect(plus).toBeDisabled();
+    fireEvent.click(plus);
+    expect(useCartStore.getState().items[0].quantity).toBe(4);
   });
 });

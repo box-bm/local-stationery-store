@@ -10,7 +10,7 @@ interface Props {
 
 export function Cart({ onCheckout }: Props) {
   const t = useT();
-  const { items, removeItem, updateQuantity, clear, total, profit } =
+  const { items, removeItem, updateQuantity, canIncrease, clear, total, profit } =
     useCartStore();
   const isEmpty = items.length === 0;
 
@@ -69,6 +69,7 @@ export function Cart({ onCheckout }: Props) {
                       variant="outline"
                       size="icon"
                       className="h-7 w-7"
+                      aria-label={t("pos.decreaseQty")}
                       onClick={() => updateQuantity(i, item.quantity - 1)}
                     >
                       <Minus className="h-3 w-3" />
@@ -80,6 +81,9 @@ export function Cart({ onCheckout }: Props) {
                       variant="outline"
                       size="icon"
                       className="h-7 w-7"
+                      aria-label={t("pos.increaseQty")}
+                      // No more stock for this product: block «+» (QA H-01).
+                      disabled={!canIncrease(i)}
                       onClick={() => updateQuantity(i, item.quantity + 1)}
                     >
                       <Plus className="h-3 w-3" />

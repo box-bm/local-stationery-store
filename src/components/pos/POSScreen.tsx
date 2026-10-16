@@ -17,7 +17,7 @@ import {
 import { useCartStore } from "@/stores/cart";
 import { toast } from "@/stores/toast";
 import { useT } from "@/i18n";
-import { stockStatus } from "@/lib/stock";
+import { reservedStock, stockStatus } from "@/lib/stock";
 import { formatQ, formatStock, cn } from "@/lib/utils";
 import type { ProductWithUnits, SellUnit } from "@/types";
 
@@ -36,6 +36,7 @@ export function POSScreen() {
   const searchRef = useRef<HTMLInputElement>(null);
 
   const addItem = useCartStore((s) => s.addItem);
+  const cartItems = useCartStore((s) => s.items);
   const cartCount = useCartStore((s) => s.count());
   const cartTotal = useCartStore((s) => s.total());
 
@@ -102,7 +103,10 @@ export function POSScreen() {
 
   function handleConfirmUnit(sellUnit: SellUnit, quantity: number) {
     if (!selected) return;
-    addItem(selected, sellUnit, quantity);
+    if (!addItem(selected, sellUnit, quantity)) {
+      toast.error(t("pos.insufficientStock", { name: selected.name }));
+      return;
+    }
     toast.success(t("pos.addedToCart", { name: selected.name }));
     setSelected(null);
     setQuery("");
@@ -262,6 +266,7 @@ export function POSScreen() {
       <SellUnitModal
         product={selected}
         open={!!selected}
+        reserved={selected ? reservedStock(cartItems, selected.id) : 0}
         onClose={() => {
           setSelected(null);
           searchRef.current?.focus();
