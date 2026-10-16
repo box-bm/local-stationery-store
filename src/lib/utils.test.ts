@@ -26,7 +26,7 @@ describe("parseSqliteDate", () => {
 
 describe("formatQ", () => {
   beforeEach(() => {
-    useSettingsStore.getState().setCurrency("Q", "GTQ");
+    useSettingsStore.getState().setCurrency("GTQ");
     useSettingsStore.getState().setLanguage("es");
   });
 
@@ -40,7 +40,7 @@ describe("formatQ", () => {
   });
 
   it("respects a custom currency symbol", () => {
-    useSettingsStore.getState().setCurrency("$", "USD");
+    useSettingsStore.getState().setCurrency("USD");
     expect(formatQ(5)).toBe("$5.00");
   });
 });

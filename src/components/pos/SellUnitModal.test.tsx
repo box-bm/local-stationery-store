@@ -40,7 +40,7 @@ function renderModal(reserved: number) {
 describe("<SellUnitModal />", () => {
   beforeEach(() => {
     useSettingsStore.getState().setLanguage("es");
-    useSettingsStore.getState().setCurrency("Q", "GTQ");
+    useSettingsStore.getState().setCurrency("GTQ");
   });
 
   it("allows adding up to the full stock when nothing is in the cart", () => {

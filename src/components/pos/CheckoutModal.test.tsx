@@ -30,7 +30,7 @@ describe("<CheckoutModal />", () => {
     completeSale.mockClear();
     useCartStore.setState({ items: [] });
     useSettingsStore.getState().setLanguage("es");
-    useSettingsStore.getState().setCurrency("Q", "GTQ");
+    useSettingsStore.getState().setCurrency("GTQ");
     useSettingsStore.getState().setPaymentMethod("cash", true);
     useSettingsStore.getState().setPaymentMethod("transfer", true);
   });
