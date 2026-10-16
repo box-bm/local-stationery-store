@@ -41,6 +41,7 @@ export const es = {
   "dashboard.subtitle": "Resumen visual del rendimiento del negocio",
   "dashboard.from": "Desde",
   "dashboard.to": "Hasta",
+  "dashboard.invalidRange": "La fecha «Desde» no puede ser posterior a «Hasta».",
   "dashboard.apply": "Aplicar",
   "dashboard.sales": "Ventas",
   "dashboard.revenue": "Ingresos",
